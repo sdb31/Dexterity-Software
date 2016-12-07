@@ -821,40 +821,52 @@ ax(~strcmpi(get(ax,'type'),'axes')) = [];                                   %Kic
 if isempty(fid)                                                             %If no text file handle was passed to this function...
     Make_Plot(plotdata,ax,str,TrialViewerData,obj);                                             %Call the subfunction to make the plot.
 else                                                                        %Otherwise...
+    [file, path] = uiputfile('*.xls','Save Spreadsheet');
+    filename = [path file];
     t = vertcat(plotdata.x);                                                %Vertically concatenate all time-points.
     t = unique(t,'rows');                                                   %Find all unique rows of the timepoints.
-    fprintf(fid,'%s,\t','DATE/TIME');                                       %Print a date column header.
-    for r = 1:length(plotdata)                                              %Step through the rats.
-        if r == length(plotdata)                                            %If this is the last rat...
-            fprintf(fid,'%s,\n',plotdata(r).rat);                           %Print the rat name followed by a carraige return.
-        else                                                                %Otherwise...
-            fprintf(fid,'%s,\t',plotdata(r).rat);                           %Print the rat name followed by a tab.
-        end
-    end
-    for i = 1:size(t,1)                                                     %Step through each time-point.
-        if rem(t(i,1),1) ~= 0                                               %If the timestamp is a fractional number of days...
-            fprintf(fid,'%s,\t',datestr(t(i,1),'mm/dd/yyyy - HH:MM'));      %Show the date and the time.
-        elseif t(i,2) - t(i,1) == 1                                         %If the timestamps only cover one day...
-            fprintf(fid,'%s,\t',datestr(t(i,1),'mm/dd/yyyy'));              %Show only the date.
-        else                                                                %Otherwise...
-            fprintf(fid,'%s,\t',[datestr(t(i,1),'mm/dd/yyyy') '-' ...
-                datestr(t(i,2)-1,'mm/dd/yyyy')]);                           %Show the date range.
-        end
-        for r = 1:length(plotdata)                                          %Step through the rats.
-            j = plotdata(r).x(:,1) == t(i,1) & ...
-                plotdata(r).x(:,1) == t(i,1);                               %Find any matching timepoint for this rat.
-            if any(j)                                                       %If any matching timepoint was found...
-                fprintf(fid,'%1.3f,',plotdata(r).y(j));                     %Print the value for this date range.
-            else                                                            %Otherwise...
-                fprintf(fid,'-,');                                          %Print a hyphen.
-            end
-            if r == length(plotdata)                                        %If this is the last rat...
-                fprintf(fid,'\n');                                          %Print a carraige return.
-            else                                                            %Otherwise...
-                fprintf(fid,'\t');                                          %Print a tab.
-            end
-        end
-    end
+    t = cellstr(datestr(t(:,1)));
+    meat = plotdata.y;
+    name = cellstr(plotdata.rat);
+    xlswrite(filename, {'Rat Name:'}, 1,'A1');
+    xlswrite(filename, name, 1, 'B1');
+    xlswrite(filename, {'Date/Time'},1,'A2');
+    xlswrite(filename, {'Variable'},1,'B2');
+    xlswrite(filename, t,1,'A3');
+    xlswrite(filename, meat,1,'B3');
+    winopen(filename)
+%     fprintf(fid,'%s,\t','DATE/TIME');                                       %Print a date column header.
+%     for r = 1:length(plotdata)                                              %Step through the rats.
+%         if r == length(plotdata)                                            %If this is the last rat...
+%             fprintf(fid,'%s,\n',plotdata(r).rat);                           %Print the rat name followed by a carraige return.
+%         else                                                                %Otherwise...
+%             fprintf(fid,'%s,\t',plotdata(r).rat);                           %Print the rat name followed by a tab.
+%         end
+%     end
+%     for i = 1:size(t,1)                                                     %Step through each time-point.
+%         if rem(t(i,1),1) ~= 0                                               %If the timestamp is a fractional number of days...
+%             fprintf(fid,'%s,\t',datestr(t(i,1),'mm/dd/yyyy - HH:MM'));      %Show the date and the time.
+%         elseif t(i,2) - t(i,1) == 1                                         %If the timestamps only cover one day...
+%             fprintf(fid,'%s,\t',datestr(t(i,1),'mm/dd/yyyy'));              %Show only the date.
+%         else                                                                %Otherwise...
+%             fprintf(fid,'%s,\t',[datestr(t(i,1),'mm/dd/yyyy') '-' ...
+%                 datestr(t(i,2)-1,'mm/dd/yyyy')]);                           %Show the date range.
+%         end
+%         for r = 1:length(plotdata)                                          %Step through the rats.
+%             j = plotdata(r).x(:,1) == t(i,1) & ...
+%                 plotdata(r).x(:,1) == t(i,1);                               %Find any matching timepoint for this rat.
+%             if any(j)                                                       %If any matching timepoint was found...
+%                 fprintf(fid,'%1.3f,',plotdata(r).y(j));                     %Print the value for this date range.
+%             else                                                            %Otherwise...
+%                 fprintf(fid,'-,');                                          %Print a hyphen.
+%             end
+%             if r == length(plotdata)                                        %If this is the last rat...
+%                 fprintf(fid,'\n');                                          %Print a carraige return.
+%             else                                                            %Otherwise...
+%                 fprintf(fid,'\t');                                          %Print a tab.
+%             end
+%         end
+%     end
 end
 
 %% This subfunction sorts the data into daily values and sends it to the plot function.
@@ -902,24 +914,25 @@ pos = [7*sp2,7*sp1,w-8*sp2,h-ui_h-10*sp1];
     drawnow;                                                                %Immediately update the figure.    
 end
 if any(strcmpi({'spreadsheet','both'},output))                              %If the user wants to save a spreadsheet...
-    temp = get(ax,'ylabel');                                                %Grab the handle for the axes y-label.
-    file = lower(get(temp,'string'));                                       %Grab the axes y-axis label.
-    file(file == ' ') = '_';                                                %Replace any spaces with underscores.
-    for i = '<>:"/\|?*().'                                                  %Step through all reserved characters.
-        file(file == i) = [];                                               %Kick out any reserved characters.
-    end
-    file = [file '_' datestr(now,'yyyymmdd')];                              %Add today's date to the default filename.
-    temp = lower(get(fig,'name'));                                          %Grab the figure name.
-    file = [temp(20:end) '_' file];                                         %Add the device name to the default filename.
-    [file, path] = uiputfile('*.csv','Save Spreadsheet',file);              %Ask the user for a filename.
-    if file(1) == 0                                                         %If the user clicked cancel...
-        return                                                              %Skip execution of the rest of the function.
-    end
-    fid = fopen([path file],'wt');                                          %Open a new text file to write the data to.   
+%     temp = get(ax,'ylabel');                                                %Grab the handle for the axes y-label.
+%     file = lower(get(temp,'string'));                                       %Grab the axes y-axis label.
+%     file(file == ' ') = '_';                                                %Replace any spaces with underscores.
+%     for i = '<>:"/\|?*().'                                                  %Step through all reserved characters.
+%         file(file == i) = [];                                               %Kick out any reserved characters.
+%     end
+%     file = [file '_' datestr(now,'yyyymmdd')];                              %Add today's date to the default filename.
+%     temp = lower(get(fig,'name'));                                          %Grab the figure name.
+%     file = [temp(20:end) '_' file];                                         %Add the device name to the default filename.
+%     [file, path] = uiputfile('*.csv','Save Spreadsheet',file);              %Ask the user for a filename.
+%     if file(1) == 0                                                         %If the user clicked cancel...
+%         return                                                              %Skip execution of the rest of the function.
+%     end
+%     fid = fopen([path file],'wt');                                          %Open a new text file to write the data to.   
     i = strcmpi(get(obj,'fontweight'),'bold');                              %Find the pushbutton with the bold fontweight.
+fid = 1;
     Plot_Timeline(obj(i),[],obj,fid,data);                                       %Call the subfunction to write the data by the appropriate timeline.
-    fclose(fid);                                                            %Close the figure.
-    winopen([path file]);                                                   %Open the CSV file.
+%     fclose(fid);                                                            %Close the figure.
+%     winopen([path file]);                                                   %Open the CSV file.
 end
 
 %% This section plots session/daily/weekly data in the specified axes.
