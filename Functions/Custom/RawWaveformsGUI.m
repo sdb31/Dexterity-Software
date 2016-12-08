@@ -70,7 +70,7 @@ end
 for i = 1:Weeks
     if sum(Sessions(i)) == 1;
         
-        figure(i+1); clf;
+        figure; clf;
         for m = (Session_Count(i)+1):(Session_Count(i+1));
             data = ArdyMotorFileRead(files{m});
             for t = 1:knob_data.session_length(m)
@@ -130,7 +130,7 @@ for i = 1:Weeks
         box off;
     elseif sum(Sessions(i)) > 1;
         
-        figure(i+1); clf;
+        figure; clf;
         TempMatrix = [];
         for m = (Session_Count(i)+1):(Session_Count(i+1));
             data = ArdyMotorFileRead(files{m});
@@ -195,7 +195,7 @@ end
 
 %% Average Waveforms Plots
 FF = Weeks + 2;
-figure(FF); clf;
+figure; clf;
 switch Waveform_Type
     case 'Median'
         plot(1:500, Overall_Median(:,:), 'Linewidth', 2);
@@ -210,7 +210,7 @@ legend(Titles, 0);
 box off;
 set(gca, 'TickDir', 'out');
 
-figure(FF+1); clf;
+figure; clf;
 boxplot(Peak_Velocity, 'symbol', 'k.', 'outliersize', 3, 'colors', 'k');
 set(gca, 'TickDir', 'out', 'XTickLabels', Titles);
 box off;
