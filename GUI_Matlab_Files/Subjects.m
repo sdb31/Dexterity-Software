@@ -823,17 +823,31 @@ if isempty(fid)                                                             %If 
 else                                                                        %Otherwise...
     [file, path] = uiputfile('*.xls','Save Spreadsheet');
     filename = [path file];
-    t = vertcat(plotdata.x);                                                %Vertically concatenate all time-points.
-    t = unique(t,'rows');                                                   %Find all unique rows of the timepoints.
-    t = cellstr(datestr(t(:,1)));
-    meat = plotdata.y;
-    name = cellstr(plotdata.rat);
-    xlswrite(filename, {'Rat Name:'}, 1,'A1');
-    xlswrite(filename, name, 1, 'B1');
-    xlswrite(filename, {'Date/Time'},1,'A2');
-    xlswrite(filename, {'Variable'},1,'B2');
-    xlswrite(filename, t,1,'A3');
-    xlswrite(filename, meat,1,'B3');
+    for r = 1:length(plotdata)
+        t = vertcat(plotdata(r).x);
+        t = unique(t,'rows');
+        t = cellstr(datestr(t(:,1)));
+        meat = plotdata(r).y;
+        name = cellstr(plotdata(r).rat);
+        xlswrite(filename, {'Rat Name:'}, r,'A1');
+        xlswrite(filename, name, r, 'B1');
+        xlswrite(filename, {'Date/Time'},r,'A2');
+        xlswrite(filename, {'Variable'},r,'B2');
+        xlswrite(filename, t,r,'A3');
+        xlswrite(filename, meat,r,'B3');
+        clear t meat name
+    end
+%     t = vertcat(plotdata.x);                                                %Vertically concatenate all time-points.
+%     t = unique(t,'rows');                                                   %Find all unique rows of the timepoints.
+%     t = cellstr(datestr(t(:,1)));
+%     meat = plotdata.y;
+%     name = cellstr(plotdata.rat);
+%     xlswrite(filename, {'Rat Name:'}, 1,'A1');
+%     xlswrite(filename, name, 1, 'B1');
+%     xlswrite(filename, {'Date/Time'},1,'A2');
+%     xlswrite(filename, {'Variable'},1,'B2');
+%     xlswrite(filename, t,1,'A3');
+%     xlswrite(filename, meat,1,'B3');
     winopen(filename)
 %     fprintf(fid,'%s,\t','DATE/TIME');                                       %Print a date column header.
 %     for r = 1:length(plotdata)                                              %Step through the rats.
