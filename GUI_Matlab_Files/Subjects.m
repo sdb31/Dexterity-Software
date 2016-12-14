@@ -172,6 +172,7 @@ for f = 1:length(files)                                                     %Ste
     catch err                                                               %If an error occurs...
         warning(['ERROR READING: ' files{f}]);                              %Show which file had a read problem...
         warning(err.message);                                               %Show the actual error message.
+        continue
     end
     %     if isfield(temp,'trial') && length(temp.trial) >= 5 && ...
     if any(strcmpi(rat_list,temp.rat))                                 %If there were at least 5 trials...
@@ -277,11 +278,13 @@ data = data(i);                                                             %Sor
 devices = unique({data.device});                                            %Grab the unique device names across all sessions.
 
 %% Create interactive figures for each of the device types.
+Counter = 1;
 for d = 1:length(devices)                                                   %Step through the devices.
     s = strcmpi({data.device},devices{d});                                  %Find all sessions with each device.
     rats = unique({data(s).rat});                                           %Find all of the unique rat names that have used this device.
     plotdata = struct([]);                                                  %Create a structure to hold data just for the plot.
-    for r = 1:length(rats)                                                  %Step through each rat.
+    data_all = struct([]);
+    for r = 1:length(rats)                                                  %Step through each rat.        
         plotdata(r).rat = rats{r};                                          %Save the rat's name to the plotdata structure.
         plotdata(r).device = devices{d};                                    %Save the device to the plotdata structure.
         i = find(strcmpi({data.rat},rats{r}) & ...
@@ -370,6 +373,7 @@ for d = 1:length(devices)                                                   %Ste
             plotdata(r).hitrate(temp_hitrate) = 0;
             plotdata(r).peak(temp_peak) = 0;
         end
+        Counter = Counter + 1;
     end
     choice = questdlg('Do you want to save this analysis session?',...
         'Save Analysis',...
@@ -378,11 +382,12 @@ for d = 1:length(devices)                                                   %Ste
     h = 5;                                                                 %Set the height of the figure, in centimeters.
     w = 15;                                                                 %Set the width of the figure, in centimeters.
     fig = figure('numbertitle','off','units','centimeters',...
-        'name','Dexterity: Subject Overview','menubar','none',...
+        'name',['Dexterity: Subject Overview, ' devices{d} ' Task'],'menubar','none',...
         'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);
     tgroup = uitabgroup('Parent', fig);
-    tabs = rat_list;
-    for i = 1:length(tabs);
+    tabs = rats;
+    for i = 1:length(tabs); 
+        
         tab(i) = uitab('Parent', tgroup, 'Title', sprintf('Animal %s', tabs{i}));
         tabs_info(i,:) = get(tab(i));
         laststages(i) = plotdata(i).stage(length(plotdata(i).stage));
@@ -418,7 +423,7 @@ for d = 1:length(devices)                                                   %Ste
             set(Existing_Analysis,'string', Names);
     end
     if All_Animals_Value == 1;
-        if length(rat_list) == 1;
+        if length(rats) == 1;
             uiwait(msgbox('Only one animal is loaded so a separate figure with all animals will not be displayed',...
                 'Only One Animal Found'));
         else
@@ -438,11 +443,11 @@ for d = 1:length(devices)                                                   %Ste
 %                     'units','normalized','position',[.1 .825 .2 .05],'fontsize',12); 
 %                 set(Number_of_Groups,'callback',GroupsAssig
 %             end
-            data = plotdata;
+            data_all = plotdata;
             pos = get(0,'Screensize');                                              %Grab the screensize.
             h = 12;                                                                 %Set the height of the figure, in centimeters.
             w = 15;                                                                 %Set the width of the figure, in centimeters.
-            for d = 1:length(devices)                                                   %Step through the devices.
+%             for d = 1:length(devices)                                                   %Step through the devices.
                 fig = figure('numbertitle','off','units','centimeters',...
                     'name','Dexterity: View All Subjects','menubar','none',...
                     'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);                     %Create a figure.
@@ -477,7 +482,7 @@ for d = 1:length(devices)                                                   %Ste
                 pos = [sp2, h-sp1-ui_h, 2*(w-6*sp2)/6, ui_h];                           %Set the position for the pop-up menu.
                 obj(1) = uicontrol(fig,'style','popup','string',str,...
                     'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
-                str = {'Session','Daily','Weekly','Export'};                            %List the timescale labels.
+                str = {'Session','Day','Week','Export'};                            %List the timescale labels.
                 for i = 2:5                                                             %Step through the 3 timescales.
                     pos = [i*sp2+i*(w-6*sp2)/6, h-sp1-ui_h, (w-6*sp2)/6, ui_h];         %Set the position for each pushbutton.
                     obj(i) = uicontrol(fig,'style','pushbutton','string',str{i-1},...
@@ -489,17 +494,17 @@ for d = 1:length(devices)                                                   %Ste
                 pos = [30*sp2, sp1, 2*(w-6*sp2)/6, ui_h];
                 obj(7) = uicontrol(fig,'style','radiobutton','string','Group Animals',...
                     'units','centimeters','position',pos,'fontsize',fontsize);
-                set(obj(1),'callback',{@Set_Plot_Type,obj,data});                            %Set the callback for the pop-up menu.
-                set(obj(2:4),'callback',{@Plot_Timeline,obj,[],data});                       %Set the callback for the timescale buttons.
-                set(obj(5),'callback',{@Export_Data,ax,obj,data});                           %Set the callback for the export button.
-                set(obj(6),'callback',{@TrainingDays,obj,data});
-                set(obj(7),'callback',{@GroupAnimals,obj,data});
-                set(fig,'userdata',data);                                           %Save the plot data to the figure's 'UserData' property.                
-                Plot_Timeline(obj(2),[],obj,[],data);                                        %Call the function to plot the session data in the figure.
+                set(obj(1),'callback',{@Set_Plot_Type,obj,data_all});                            %Set the callback for the pop-up menu.
+                set(obj(2:4),'callback',{@Plot_Timeline,obj,[],data_all});                       %Set the callback for the timescale buttons.
+                set(obj(5),'callback',{@Export_Data,ax,obj,data_all});                           %Set the callback for the export button.
+                set(obj(6),'callback',{@TrainingDays,obj,data_all});
+                set(obj(7),'callback',{@GroupAnimals,obj,data_all});
+                set(fig,'userdata',data_all);                                           %Save the plot data to the figure's 'UserData' property.                
+                Plot_Timeline(obj(2),[],obj,[],data_all);                                        %Call the function to plot the session data in the figure.
                 set(fig,'ResizeFcn',{@Resize,ax,obj});
-            end
+%             end
         end
-    end
+    end   
 end
 
 function TrainingDays(~,~,obj,data)
@@ -566,7 +571,7 @@ for d = 1:length(devices)
             pos = get(0,'Screensize');                                              %Grab the screensize.
             h = 10;                                                                 %Set the height of the figure, in centimeters.
             w = 15;                                                                 %Set the width of the figure, in centimeters.
-            for d = 1:length(devices)                                                   %Step through the devices.
+%             for d = 1:length(devices)                                                   %Step through the devices.
                 fig = figure('numbertitle','off','units','centimeters',...
                     'name','Dexterity: View All Subjects','menubar','none',...
                     'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);                     %Create a figure.
@@ -602,7 +607,7 @@ for d = 1:length(devices)
                 pos = [sp2, h-sp1-ui_h, 2*(w-6*sp2)/6, ui_h];                           %Set the position for the pop-up menu.
                 obj(1) = uicontrol(fig,'style','popup','string',str,...
                     'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
-                str = {'Session','Daily','Weekly','Export'};                            %List the timescale labels.
+                str = {'Session','Day','Week','Export'};                            %List the timescale labels.
                 for i = 2:5                                                             %Step through the 3 timescales.
                     pos = [i*sp2+i*(w-6*sp2)/6, h-sp1-ui_h, (w-6*sp2)/6, ui_h];         %Set the position for each pushbutton.
                     obj(i) = uicontrol(fig,'style','pushbutton','string',str{i-1},...
@@ -622,7 +627,7 @@ for d = 1:length(devices)
                 set(fig,'userdata',data);                                                              %Save the plot data to the figure's 'UserData' property.
                 Plot_Timeline(obj(2),[],obj,[],data);                                        %Call the function to plot the session data in the figure.
                 set(fig,'ResizeFcn',{@Resize,ax,obj});
-            end
+%             end
         end
     end
 end
@@ -669,7 +674,7 @@ for d = 1:length(devices)                                                   %Ste
     pos = [sp2, h-sp1-ui_h, 2*(w-6*sp2)/6, ui_h];                           %Set the position for the pop-up menu.
     obj(1) = uicontrol(fig,'style','popup','string',str,...
         'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
-    str = {'Session','Daily','Weekly','Export'};                            %List the timescale labels.
+    str = {'Session','Day','Week','Export'};                            %List the timescale labels.
     for i = 2:5                                                             %Step through the 3 timescales.
         pos = [i*sp2+i*(w-6*sp2)/6, h-sp1-ui_h, (w-6*sp2)/6, ui_h];         %Set the position for each pushbutton.
         obj(i) = uicontrol(fig,'style','pushbutton','string',str{i-1},...
