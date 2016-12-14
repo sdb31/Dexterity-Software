@@ -80,15 +80,19 @@ if version < 0                                                              %If 
     end
     data.pauses = [];                                                       %Create a field in the data structure to hold pause times.
     data.manual_feeds = [];                                                 %Create a field in the data structure to hold manual feed times.
-    while ~feof(fid)                                                        %Loop until the end of the file.
+%     counter = 1;
+    while ~feof(fid)                                                        %Loop until the end of the file.        
         trial = fread(fid,1,'uint32');                                      %Read in the trial number.
-        if isempty(trial)                                                    %If no trial number was read or that's the end of the file...
+        if isempty(trial);                                                    %If no trial number was read or that's the end of the file...
             starttime = fread(fid,1,'float64');
             if isempty(starttime)
                 starttime = temp.datenum;
             end
             continue                                                        %Skip execution of the rest of the loop.
         end
+%         if trial == 0 && counter > 1;
+%             continue
+%         end
         starttime = fread(fid,1,'float64');                                 %Read in the trial start time.
         outcome = fread(fid,1,'uint8');                                     %Read in the trial outcome.
         if feof(fid)                                                        %If we've reached the end of the file.
@@ -143,6 +147,7 @@ if version < 0                                                              %If 
                     data.pre_trial_sampling_dur;                            %Subtract the pre-trial sampling duration from the sample times.
             end
         end
+%         counter = counter + 1;
     end
     if version < -1 && isfield(data,'trial') && ...
             isfield(data.trial,'starttime')                                 %If the file format version is newer than version -1 and the daycode function exists...
