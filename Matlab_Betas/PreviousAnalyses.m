@@ -45,9 +45,11 @@ set(handles.Annotated_List, 'callback', {@ExistingAnnotatedAnalysis_Jump});
 end
 
 function ExistingAnalysis_Jump(hObject,~)
-Existing_Analysis(hObject)
+% index_selected = get(hObject,'value');
+AutomatedAnalysis(hObject);
 end
 
 function ExistingAnnotatedAnalysis_Jump(hObject,~)
-ExistingAnnotatedAnalysis(hObject)
+index_selected = get(hObject,'value');
+AnnotatedAnalysis(index_selected)
 end

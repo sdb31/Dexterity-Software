@@ -4,7 +4,7 @@ if ~exist(datapath,'dir')                                           %If the prim
     mkdir(datapath);                                                %Make the primary local data path.
 end
 
-% cd(datapath);
+cd(datapath);
 Info = dir(datapath);
 
 choice = questdlg('Would you like to create a new experiment or choose from an existing one?',...

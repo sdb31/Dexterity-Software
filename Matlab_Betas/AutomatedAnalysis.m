@@ -1,5 +1,55 @@
 function AutomatedAnalysis(varargin)
-
+if ~isempty(varargin) == 1;
+    varargin = varargin{1};
+    index_selected = get(varargin,'value');
+    Analysis = get(varargin,'string'); Analysis = char(Analysis(index_selected));
+    if strcmpi(Analysis,'No Analyses') == 1;
+        return
+    end
+    path = ['C:\KnobAnalysis\ConfigFiles\' Analysis];
+    load(path);
+    devices = unique({config.data.device});
+    FinalDates = {config.FinalDates}; FinalDates = FinalDates{:};
+    % All_Animals_Value = config.all_animals_value;
+    pos = get(0,'Screensize');                                              %Grab the screensize.
+    h = 5;                                                                 %Set the height of the figure, in centimeters.
+    w = 15;                                                                 %Set the width of the figure, in centimeters.
+    for d = 1:length(devices);
+        fig = figure('numbertitle','off','units','centimeters',...
+            'name',['Dexterity: Subject Overview, ' devices{d} ' Task'],'menubar','none',...
+            'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);
+        tgroup = uitabgroup('Parent', fig);
+        tabs = {config.data.rat};
+        plotdata = config.data;
+        for i = 1:length(tabs);
+            
+            tab(i) = uitab('Parent', tgroup, 'Title', sprintf('Animal %s', tabs{i}));
+            tabs_info(i,:) = get(tab(i));
+            laststages(i) = plotdata(i).stage(length(plotdata(i).stage));
+            numberofsessions(i) = length(plotdata(i).stage);
+            AnimalName(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Animal Name: %s', tabs{i}), ...
+                'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .85 .4 .1],...
+                'Fontsize', 10, 'Fontweight', 'normal') ;
+            LastSessionRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Session Run: %s', laststages{i}), ...
+                'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .65 .6 .1],...
+                'Fontsize', 10, 'Fontweight', 'normal') ;
+            LastDateRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Date Run: %s', FinalDates{i}), ...
+                'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .45 .4 .1],...
+                'Fontsize', 10, 'Fontweight', 'normal') ;
+            NumberOfSessions(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Number of Sessions: %d', numberofsessions(i)), ...
+                'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .25 .4 .1],...
+                'Fontsize', 10, 'Fontweight', 'normal') ;
+            DevicesRuns(d) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Devices: %s', devices{d}), ...
+                'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .05 .4 .1],...
+                'Fontsize', 10, 'Fontweight', 'normal') ;
+            General_Analysis(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','Graph Animal','HorizontalAlignment', 'left',...
+                'units','normalized','position',[.7 .625 .25 .25],'fontsize',10, 'callback', {@GeneralAnalysis,devices(d)},'userdata',plotdata(i));
+            View_All_Animals(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','View All Animals','HorizontalAlignment', 'left',...
+                'units','normalized','position',[.7 .3 .25 .25],'fontsize',10, 'callback', {@AllAnimals,devices(d),tabs},'userdata',plotdata);
+        end
+    end
+    return
+end
 
 datapath = 'C:\KnobAnalysis\ConfigFiles\';                                         %Set the primary local data path for saving data files.
 if ~exist(datapath,'dir')                                           %If the primary local data path doesn't already exist...
@@ -252,7 +302,158 @@ Annotate = questdlg('Do you want to annotate now or later?',...
     'Now', 'Later', 'Cancel');
 switch Annotate
     case 'Now'
-        msgbox('Later')
+         %% Create interactive figures for each of the device types.
+        Counter = 1;
+        for d = 1:length(devices)                                                   %Step through the devices.
+            s = strcmpi({data.device},devices{d});                                  %Find all sessions with each device.
+            rats = unique({data(s).rat});                                           %Find all of the unique rat names that have used this device.
+            plotdata = struct([]);                                                  %Create a structure to hold data just for the plot.
+            data_all = struct([]);
+            for r = 1:length(rats)                                                  %Step through each rat.
+                plotdata(r).rat = rats{r};                                          %Save the rat's name to the plotdata structure.
+                plotdata(r).device = devices{d};                                    %Save the device to the plotdata structure.
+                i = find(strcmpi({data.rat},rats{r}) & ...
+                    strcmpi({data.device},devices{d}));                             %Find all the session for this rat on this device.
+                plotdata(r).times = [data(i).timestamp];                            %Grab the timestamps for all sessions.
+                plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
+                plotdata(r).hitrate = nan(1,length(i));                             %Pre-allocate a matrix to hold the hit rate for each session.
+                plotdata(r).numtrials = nan(1,length(i));                           %Pre-allocate a matrix to hold the number of trials for each session.
+                plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
+                plotdata(r).first_hit_five = nan(1,length(i));                      %Pre-allocate a matrix to hold the number of hits in the first 5 minutes.
+                plotdata(r).first_trial_five = nan(1,length(i));                    %Pre-allocate a matrix to hold the number of trials in the first 5 minutes.
+                plotdata(r).any_hit_five = nan(1,length(i));                        %Pre-allocate a matrix to hold the maximum number of hits in any 5 minutes.
+                plotdata(r).any_trial_five = nan(1,length(i));                      %Pre-allocate a matrix to hold the maximum number of trials in any 5 minutes.
+                plotdata(r).any_hitrate_five = nan(1,length(i));                    %Pre-allocate a matrix to hold the maximum hit rate in any 5 minutes.
+                plotdata(r).min_iti = nan(1,length(i));                             %Pre-allocate a matrix to hold the minimum inter-trial interval.
+                plotdata(r).impulse = nan(1,length(i));                             %Pre-allocate a matrix to hold the average peak impulse for each session.
+                plotdata(r).stage = cell(1,length(i));                              %Pre-allocate a cell array to hold the stage name for each session..
+                plotdata(r).files = cell(1,length(i));
+                plotdata(r).peak_velocity = nan(1,length(i));
+                plotdata(r).latency = nan(1,length(i));
+                for s = 1:length(i)                                                 %Step through each session.
+                    plotdata(r).peak(s) = mean(data(i(s)).peak);                    %Save the mean signal peak for each session.
+                    plotdata(r).impulse(s) = mean(data(i(s)).impulse);              %Save the mean signal impulse peak for each session.
+                    plotdata(r).hitrate(s) = mean(data(i(s)).outcome == 'H');       %Save the hit rate for each session.
+                    plotdata(r).numtrials(s) = length(data(i(s)).outcome);          %Save the total number of trials for each session.
+                    plotdata(r).stage{s} = data(i(s)).stage;                        %Save the stage for each session.
+                    plotdata(r).files{s} = data(i(s)).files;
+                    plotdata(r).peak_velocity(s) = data(i(s)).peak_velocity;
+                    plotdata(r).latency(s) = data(i(s)).latency_to_hit;
+                    times = data(i(s)).starttime;                                   %Grab the trial start times.
+                    times = 86400*(times - data(i(s)).timestamp);                   %Convert the trial start times to seconds relative to the first trial.
+                    if any(times >= 300)                                            %If the session lasted for at least 5 minutes...
+                        plotdata(r).first_hit_five(s) = ...
+                            sum(data(i(s)).outcome(times <= 300) == 'H');           %Count the number of hits in the first 5 minutes.
+                        plotdata(r).first_trial_five(s) = sum(times <= 300);        %Count the number of trials in the first 5 minutes.
+                        a = zeros(length(times)-1,2);                               %Create a matrix to hold hit counts in any 5 minutes.
+                        for j = 1:length(times) - 1                                 %Step through each trial.
+                            a(j,2) = sum(times(j:end) - times(j) <= 300);           %Count the number of trials within 5 minutes of each trial.
+                            a(j,1) = sum(times(j:end) - times(j) <= 300 & ...
+                                data(i(s)).outcome(j:end) == 'H');                  %Count the number of hits within 5 minutes of each trial.
+                        end
+                        plotdata(r).any_hit_five(s) = nanmax(a(:,1));               %Find the maximum number of hits in any 5 minutes.
+                        plotdata(r).any_trial_five(s) = nanmax(a(:,2));             %Find the maximum number of trials in any 5 minutes.
+                        a(a(:,2) < 10,:) = NaN;                                     %Kick out any epochs with fewer than 10 trials.
+                        a = a(:,1)./a(:,2);                                         %Calculate the hit rate within each 5 minute epoch.
+                        plotdata(r).any_hitrate_five(s) = nanmax(a);                %Find the maximum hit rate of trials in any 5 minutes.
+                    end
+                    if length(times) > 1                                            %If there's more than one trial...
+                        times = diff(times);                                        %Calculate the inter-trial intervals.
+                        times = boxsmooth(times,10);                                %Box-smooth the inter-trial intervals over 10 trials.
+                        if length(times) > 11                                       %If there's mor than 11 trials...
+                            plotdata(r).min_iti(s) = nanmin(times(6:end-5));        %Find the minimum inter-trial interval over full groups of 10 trials.
+                        else                                                        %Otherwise...
+                            plotdata(r).min_iti(s) = times(round(length(times)/2)); %Set the minimum inter-trial interval to the middle-most value.
+                        end
+                    end
+                end
+                % Calculate training days
+                temp = {};
+                for l = 1:length(plotdata(r).times)
+                    temp(l) = {datestr(plotdata(r).times(l),1)};
+                end
+                plotdata(r).training_days = 1:1:length(unique(temp));
+                
+            end
+            for r = 1:length(plotdata)                                                  %Step through each rat.
+                clear dates
+                plotdata2(r).times = plotdata(r).times';
+                for i = 1:size(plotdata2(r).times,1)                                         %Step through each timepoint.
+                    if rem(plotdata2(r).times(i,1),1) ~= 0                                   %If the timestamp is a fractional number of days...
+                        temp = datestr(plotdata2(r).times(i,1),'mm/dd/yyyy, HH:MM');         %Show the date and the time.
+                    elseif plotdata2(r).x(i,2) - plotdata2(r).x(i,1) == 1                 %If the timestamps only cover one day...
+                        temp = datestr(plotdata2(r).times(i,1),'mm/dd/yyyy');                %Show only the date.
+                    else                                                                %Otherwise...
+                        temp = [datestr(plotdata2(r).times(i,1),'mm/dd/yyyy') '-' ...
+                            datestr(plotdata2(r).times(i,2)-1,'mm/dd/yyyy')];                %Show the date range.
+                    end
+                    dates{i} = temp;
+                end
+                FinalDates{r} = dates{end};
+            end
+            for r = 1:length(plotdata);
+                temp_hitrate = isnan(plotdata(r).hitrate);
+                temp_peak = isnan(plotdata(r).peak);
+                if ~isempty(find(temp_hitrate == 1, 1)) == 1;
+                    plotdata(r).hitrate(temp_hitrate) = 0;
+                    plotdata(r).peak(temp_peak) = 0;
+                end
+                Counter = Counter + 1;
+            end
+            choice = questdlg('Do you want to save this analysis session?',...
+                'Save Analysis',...
+                'Yes', 'No', 'Cancel');
+            pos = get(0,'Screensize');                                              %Grab the screensize.
+            h = 5;                                                                 %Set the height of the figure, in centimeters.
+            w = 15;                                                                 %Set the width of the figure, in centimeters.
+            fig = figure('numbertitle','off','units','centimeters',...
+                'name',['Dexterity: Subject Overview, ' devices{d} ' Task'],'menubar','none',...
+                'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);
+            tgroup = uitabgroup('Parent', fig);
+            tabs = rats;
+            for i = 1:length(tabs);
+                
+                tab(i) = uitab('Parent', tgroup, 'Title', sprintf('Animal %s', tabs{i}));
+                tabs_info(i,:) = get(tab(i));
+                laststages(i) = plotdata(i).stage(length(plotdata(i).stage));
+                numberofsessions(i) = length(plotdata(i).stage);
+                AnimalName(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Animal Name: %s', tabs{i}), ...
+                    'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .85 .4 .1],...
+                    'Fontsize', 10, 'Fontweight', 'normal') ;
+                LastSessionRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Session Run: %s', laststages{i}), ...
+                    'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .65 .6 .1],...
+                    'Fontsize', 10, 'Fontweight', 'normal') ;
+                LastDateRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Date Run: %s', FinalDates{i}), ...
+                    'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .45 .4 .1],...
+                    'Fontsize', 10, 'Fontweight', 'normal') ;
+                NumberOfSessions(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Number of Sessions: %d', numberofsessions(i)), ...
+                    'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .25 .4 .1],...
+                    'Fontsize', 10, 'Fontweight', 'normal') ;
+                DevicesRuns(d) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Devices: %s', devices{d}), ...
+                    'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .05 .4 .1],...
+                    'Fontsize', 10, 'Fontweight', 'normal') ;
+                General_Analysis(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','General Analysis','HorizontalAlignment', 'left',...
+                    'units','normalized','position',[.7 .625 .25 .25],'fontsize',10, 'callback', {@GeneralAnalysis,devices(d)},'userdata',plotdata(i));
+                View_All_Animals(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','View All Animals','HorizontalAlignment', 'left',...
+                    'units','normalized','position',[.7 .3 .25 .25],'fontsize',10, 'callback', {@AllAnimals,devices(d),rats},'userdata',plotdata);
+            end
+            switch choice
+                case 'Yes'
+                    config.data = plotdata; config.time = date;
+                    c = clock; hour = num2str(c(4)); minute = num2str(c(5)); year = num2str(c(1));
+                    month = num2str(c(2)); day = num2str(c(3));
+                    SessionName = [month day year '_' hour minute '_Analysis'];
+                    datapath = 'C:\KnobAnalysis\ConfigFiles\'; 
+                    path = datapath;
+                    filename = [datapath SessionName '.mat'];
+                    config.name = SessionName; config.FinalDates = FinalDates;
+                    save(filename, 'config');
+%                     cd(path); Info = dir(path); Names = {Info.name}; Names = Names(3:end);
+%                     set(Existing_Analysis,'string', Names);
+            end
+            
+        end
+        AnnotateNow([],[],obj,plotdata)
     case 'Later'
         %% Create interactive figures for each of the device types.
         Counter = 1;
@@ -387,7 +588,7 @@ switch Annotate
                 General_Analysis(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','General Analysis','HorizontalAlignment', 'left',...
                     'units','normalized','position',[.7 .625 .25 .25],'fontsize',10, 'callback', {@GeneralAnalysis,devices(d)},'userdata',plotdata(i));
                 View_All_Animals(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','View All Animals','HorizontalAlignment', 'left',...
-                    'units','normalized','position',[.7 .3 .25 .25],'fontsize',10, 'callback', {@AllAnimals,devices(d)},'userdata',plotdata(i));
+                    'units','normalized','position',[.7 .3 .25 .25],'fontsize',10, 'callback', {@AllAnimals,devices(d),rats},'userdata',plotdata);
             end
             switch choice
                 case 'Yes'
@@ -407,8 +608,9 @@ switch Annotate
         end
 end
 
-function AllAnimals(hObject,~,devices)
+function AllAnimals(hObject,~,devices,rats)
 plotdata = get(hObject,'userdata');
+for d = 1:length(devices)
     if length(rats) == 1;
         uiwait(msgbox('Only one animal is loaded so a separate figure with all animals will not be displayed',...
             'Only One Animal Found'));
@@ -431,8 +633,8 @@ plotdata = get(hObject,'userdata');
         %             end
         data_all = plotdata;
         pos = get(0,'Screensize');                                              %Grab the screensize.
-        h = 12;                                                                 %Set the height of the figure, in centimeters.
-        w = 15;                                                                 %Set the width of the figure, in centimeters.
+        h = 13;                                                                 %Set the height of the figure, in centimeters.
+        w = 20;                                                                 %Set the width of the figure, in centimeters.
         %             for d = 1:length(devices)                                                   %Step through the devices.
         fig = figure('numbertitle','off','units','centimeters',...
             'name','Dexterity: View All Subjects','menubar','none',...
@@ -444,7 +646,7 @@ plotdata = get(hObject,'userdata');
         pos = [7*sp2,7*sp1,w-8*sp2,h-ui_h-10*sp1];                               %Set the position of the axes.
         ax = axes('units','centimeters','position',pos,'box','on',...
             'linewidth',2);                                                     %Create axes for showing the log events histogram.
-        obj = zeros(1,7);                                                       %Create a matrix to hold timescale uicontrol handles.
+        obj = zeros(1,8);                                                       %Create a matrix to hold timescale uicontrol handles.
         str = {'Overall Hit Rate',...
             'Total Trial Count',...
             'Mean Peak Force',...
@@ -474,25 +676,193 @@ plotdata = get(hObject,'userdata');
             obj(i) = uicontrol(fig,'style','pushbutton','string',str{i-1},...
                 'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
         end
-        pos = [sp2, sp1, 2*(w-6*sp2)/6, ui_h];
+        pos = [sp2, sp1, 2*(w-6*sp2)/6, .9*ui_h];
         obj(6) = uicontrol(fig,'style','radiobutton','string','Concatenate Dates',...
             'units','centimeters','position',pos,'fontsize',fontsize);
-        pos = [30*sp2, sp1, 2*(w-6*sp2)/6, ui_h];
+        pos = [30*sp2, sp1, 2*(w-6*sp2)/6, .9*ui_h];
         obj(7) = uicontrol(fig,'style','radiobutton','string','Group Animals',...
+            'units','centimeters','position',pos,'fontsize',fontsize);
+        pos = [75*sp2, sp1, 2*(w-6*sp2)/8, .9*ui_h];
+        obj(8) = uicontrol(fig,'style','pushbutton','string','Annotate',...
             'units','centimeters','position',pos,'fontsize',fontsize);
         set(obj(1),'callback',{@Set_Plot_Type,obj,data_all});                            %Set the callback for the pop-up menu.
         set(obj(2:4),'callback',{@Plot_Timeline,obj,[],data_all});                       %Set the callback for the timescale buttons.
         set(obj(5),'callback',{@Export_Data,ax,obj,data_all});                           %Set the callback for the export button.
         set(obj(6),'callback',{@TrainingDays,obj,data_all});
         set(obj(7),'callback',{@GroupAnimals,obj,data_all});
+        set(obj(8),'callback',{@AnnotateNow,obj,data_all});
         set(fig,'userdata',data_all);                                           %Save the plot data to the figure's 'UserData' property.
         Plot_Timeline(obj(2),[],obj,[],data_all);                                        %Call the function to plot the session data in the figure.
         set(fig,'ResizeFcn',{@Resize,ax,obj});
         %             end
     end
+end
 
+function AnnotateNow(~,~,obj,data_all)
+% msgbox('Hello!');
+Annotate_Choice = questdlg('Do you want to choose your files or use all of the files?',...
+    'File Choice',...
+    'Choose', 'All', 'Cancel');
 
+switch Annotate_Choice
+    case 'Choose'
+        %        Count = 1;
+%         files = {data_all.files};
+        rat_list = {data_all.rat};
+        %        for q = 1:length(files)
+        %             r = 1;
+        %             temp = [char(rat_list(r)) '_'];
+        %             t = strfind(files{q},temp);
+        %             %             if length(t) == 1;
+        %             %                 t = [];
+        %             %             end
+        %             while isempty(t) == 1;
+        %                 r = r + 1;
+        %                 temp = [char(rat_list(r)) '_'];
+        %                 t = strfind(files{q},temp);
+        %                 %                 if length(t) == 1;
+        %                 %                     t = [];
+        %                 %                 end
+        %             end
+        %             if length(t) > 2
+        %                 temp = length(t) - 1;
+        %                 t = t(temp);
+        %             elseif length(t) == 2
+        %                 temp = 2;
+        %                 t = t(temp);
+        %             else
+        %                 t = t(1);
+        %             end
+        %             Count = length(dispfiles(r).files);
+        %             Count = Count + 1;
+        %             dispfiles(r).files{Count} = files{q}(t:end);
+        %             dispfiles(r).realfiles{Count} = files{q};
+        %         end
+        for d = 1:length(data_all)
+            clear temp_dispfiles temp_ratname temp_files_emptycheck
+%             temp_files = data_all{d}.files;
+            temp_files_emptycheck = find(cellfun(@isempty,data_all(d).files));
+            if isempty(temp_files_emptycheck) == 0
+                data_all(d).files(temp_files_emptycheck) = [];
+            end
+            for q = 1:length(data_all(d).files)
+                temp_ratname = [char(rat_list{d}) '_'];
+                t = strfind(data_all(d).files{q},temp_ratname);
+                if length(t) > 2
+                    temp = length(t) - 1;
+                    t = t(temp);
+                elseif length(t) == 2
+                    temp = 2;
+                    t = t(temp);
+                else
+                    t = t(1);
+                end
+                temp_dispfiles{q} = data_all(d).files{q}(t:end);
+            end
+%             temp_dispfile
+            test = listdlg('PromptString', ['Which files would you like to include for Animal ' rat_list{d} '?'],...
+                'name','File Selection',...
+                'SelectionMode','multiple',...
+                'listsize',[500 500],...
+                'initialvalue',1:length(temp_dispfiles),...
+                'ListString',temp_dispfiles);
+            data_all(d).hitrate = data_all(d).hitrate(test);
+            data_all(d).peak = data_all(d).peak(test);
+            data_all(d).latency = data_all(d).latency(test);
+            data_all(d).peak_velocity = data_all(d).peak_velocity(test);
+            data_all(d).numtrials = data_all(d).numtrials(test);
+%             dispfiles(d).realfiles = dispfiles(d).realfiles(test);
+        end
+end
+datapath = 'C:\AnalyzeGroup\';                                         %Set the primary local data path for saving data files.
+if ~exist(datapath,'dir')                                           %If the primary local data path doesn't already exist...
+    mkdir(datapath);                                                %Make the primary local data path.
+end
+devices = unique({data_all.device});
+prompt = {'Experiment Name', 'Group Names', 'Event Data', 'Total Weeks'};
+dlg_title = 'Annotate New Experiment';
+ExperimentInfo = inputdlg(prompt,dlg_title,[1 50; 1 50; 1 50; 1 20]);
+Groups = strsplit(ExperimentInfo{2});
+Events = strsplit(ExperimentInfo{3});
+Weeks = str2num(ExperimentInfo{4});
+temp = [datapath ExperimentInfo{1}];
+mkdir(temp);
+% datapath = 'C:\AnalyzeGroup\'; 
+temp = [temp '\TreatmentGroups'];
+% cd(temp);
+mkdir(temp);
+% temp = [temp '\TreatmentGroups'];
+for i = 1:length(Groups);
+    mkdir(temp, Groups{i});
+end
 
+uiwait(msgbox('Please assign subjects to each experimental group now.', 'Proceed to Subject Assignment'));
+%         Counter = 1;
+AnimalName = cell(1,size(data_all,2));
+SessionsInfo = cell(1,size(data_all,2));
+rat_list = cell(1,size(data_all,2));
+for i = 1:size(data_all,2)
+    rat_list(i) = {data_all(i).rat};
+end
+for g = 1:length(Groups);
+    GG = listdlg('PromptString',['Group: ' Groups{g}],...
+        'name','Subject Assignment',...
+        'SelectionMode','multiple',...
+        'listsize',[250 250],...
+        'initialvalue',1:length(rat_list),...
+        'uh',25,...
+        'ListString',rat_list);
+    if isempty(g)                                                               %If the user clicked "cancel" or closed the dialog...
+        return                                                                  %Skip execution of the rest of the function.
+    else                                                                        %Otherwise...
+        handles(g).path = ['C:\AnalyzeGroup\' ExperimentInfo{1} '\TreatmentGroups\' Groups{g}];
+        handles(g).rat_list = rat_list(GG);                                                 %Pare down the rat list to those that the user selected.
+        handles(g).GroupName = Groups{g};
+    end
+    
+    for r = 1:length(handles(g).rat_list)
+        cd(handles(g).path)
+        mkdir(handles(g).rat_list{r});
+        temp = [handles(g).path '\' handles(g).rat_list{r} '\'];
+        cd(temp)
+        %                 temp2 = [datapath '\' handles(g).rat_list{r}];
+        %                 copyfile(temp2,temp);
+        temp3 = ['Number of sessions per week over ' num2str(Weeks) ' weeks for Animal ' handles(g).rat_list{r}];
+        dlg_title = 'Session per Week';
+        SessionsInfo(GG(r)) = inputdlg(temp3, dlg_title, [1 50]);
+        AnimalName(GG(r)) = handles(g).rat_list(r);
+        %                 Counter = Counter + 1;
+    end
+end
+FilePath = ['C:\AnalyzeGroup\' ExperimentInfo{1}];
+cd(FilePath);
+mkdir('ConfigFiles');
+FilePath = [FilePath '\ConfigFiles'];
+cd(FilePath);
+config.weeks = Weeks;
+%         config.events = ExperimentInfo{3}; config.events = {config.events};
+config.events = Events;
+config.devices = devices;
+config.plotdata = data_all;
+xlabels = inputdlg('What are your xlabels?','XLabels', [1 50]);
+config.xlabels = strsplit(xlabels{:});
+for i = 1:length(config.events);
+    event_location = listdlg('PromptString', ['Where does ' config.events{i} ' occur ?'],...
+        'name','Event Location',...
+        'SelectionMode','multiple',...
+        'listsize',[250 100],...
+        'initialvalue',1,...
+        'ListString',config.xlabels);
+    config.event_location(i) = event_location;
+end
+for m = 1:length(rat_list);
+    config.animal(m).name = AnimalName{m};
+    config.animal(m).sessions = SessionsInfo{m};
+end
+filename = [ExperimentInfo{1} 'Config.mat'];
+save(filename, 'config');
+AnnotatedAnalysis(ExperimentInfo{1})
+        
 function TrainingDays(~,~,obj,data)
 i = strcmpi(get(obj,'fontweight'),'bold');
 Plot_Timeline(obj(i),[],obj,[],data);     
@@ -500,123 +870,6 @@ Plot_Timeline(obj(i),[],obj,[],data);
 function GroupAnimals(~,~,obj,data)
 i = strcmpi(get(obj,'fontweight'),'bold');
 Plot_Timeline(obj(i),[],obj,[],data);
-
-%% This function loads an existing analysis that the user has saved
-function ExistingAnalysis(hObject,~)
-index_selected = get(hObject,'value'); 
-Analysis = get(hObject,'string'); Analysis = char(Analysis(index_selected));
-if strcmpi(Analysis,'No Analyses') == 1;
-    return
-end
-path = ['C:\KnobAnalysis\ConfigFiles\' Analysis];
-load(path);
-devices = unique({config.data.device});
-FinalDates = {config.FinalDates}; FinalDates = FinalDates{:};
-All_Animals_Value = config.all_animals_value;
-pos = get(0,'Screensize');                                              %Grab the screensize.
-h = 5;                                                                 %Set the height of the figure, in centimeters.
-w = 15;                                                                 %Set the width of the figure, in centimeters.
-for d = 1:length(devices)
-    fig = figure('numbertitle','off','units','centimeters',...
-        'name',['Dexterity: Subject Overview'],'menubar','none',...
-        'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);
-    tgroup = uitabgroup('Parent', fig);
-    tabs = {config.data.rat};
-    plotdata = config.data;
-    
-    for i = 1:length(tabs);
-        tab(i) = uitab('Parent', tgroup, 'Title', sprintf('Animal %s', tabs{i}));
-        tabs_info(i,:) = get(tab(i));
-        laststages(i) = plotdata(i).stage(length(plotdata(i).stage));
-        numberofsessions(i) = length(plotdata(i).stage);
-        AnimalName(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Animal Name: %s', tabs{i}), ...
-            'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .85 .4 .1],...
-            'Fontsize', 10, 'Fontweight', 'normal') ;
-        LastSessionRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Session Run: %s', laststages{i}), ...
-            'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .65 .6 .1],...
-            'Fontsize', 10, 'Fontweight', 'normal') ;
-        LastDateRun(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Last Date Run: %s', FinalDates{i}), ...
-            'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .45 .4 .1],...
-            'Fontsize', 10, 'Fontweight', 'normal') ;
-        NumberOfSessions(i) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Number of Sessions: %d', numberofsessions(i)), ...
-            'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .25 .4 .1],...
-            'Fontsize', 10, 'Fontweight', 'normal') ;
-        DevicesRuns(d) = uicontrol('Parent', tab(i), 'Style', 'text', 'String', sprintf('Devices: %s', devices{d}), ...
-            'HorizontalAlignment', 'left', 'units', 'normalized', 'Position', [.05 .05 .4 .1],...
-            'Fontsize', 10, 'Fontweight', 'normal') ;
-        General_Analysis(i) = uicontrol('Parent', tab(i),'style','pushbutton','string','General Analysis','HorizontalAlignment', 'left',...
-            'units','normalized','position',[.7 .625 .25 .25],'fontsize',10, 'callback', {@GeneralAnalysis,devices(d)},'userdata',plotdata(i));
-    end
-   if All_Animals_Value == 1;
-        if length({config.data.rat}) == 1;
-            uiwait(msgbox('Only one animal is loaded so a separate figure with all animals will not be displayed',...
-                'Only One Animal Found'));
-        else
-            
-            data = plotdata;
-            pos = get(0,'Screensize');                                              %Grab the screensize.
-            h = 10;                                                                 %Set the height of the figure, in centimeters.
-            w = 15;                                                                 %Set the width of the figure, in centimeters.
-%             for d = 1:length(devices)                                                   %Step through the devices.
-                fig = figure('numbertitle','off','units','centimeters',...
-                    'name','Dexterity: View All Subjects','menubar','none',...
-                    'position',[pos(3)/2-w/2, pos(4)/2-h/2, w, h]);                     %Create a figure.
-                ui_h = 0.07*h;                                                          %Set the heigh of the uicontrols.
-                fontsize = 0.6*28.34*ui_h;                                              %Set the fontsize for all uicontrols.
-                sp1 = 0.02*h;                                                           %Set the vertical spacing between axes and uicontrols.
-                sp2 = 0.01*w;                                                           %Set the horizontal spacing between axes and uicontrols.
-%                 pos = [7*sp2,3*sp1,w-8*sp2,h-ui_h-5*sp1];                               %Set the position of the axes.
-                pos = [7*sp2,7*sp1,w-8*sp2,h-ui_h-10*sp1]; 
-                ax = axes('units','centimeters','position',pos,'box','on',...
-                    'linewidth',2);                                                     %Create axes for showing the log events histogram.
-                obj = zeros(1,7);                                                       %Create a matrix to hold timescale uicontrol handles.
-                str = {'Overall Hit Rate',...
-                    'Total Trial Count',...
-                    'Mean Peak Force',...
-                    'Median Peak Force',...
-                    'Trial Count',...
-                    'Hits in First 5 Minutes',...
-                    'Trials in First 5 Minutes',...
-                    'Max. Hits in Any 5 Minutes',...
-                    'Max. Trials in Any 5 Minutes',...
-                    'Max. Hit Rate in Any 5 Minutes',...
-                    'Min. Inter-Trial Interval (Smoothed)',...
-                    'Mean Peak Impulse',...
-                    'Median Peak Impulse',...
-                    'Peak Velocity',...
-                    'Latency to Hit'};                                             %List the available plots for the pull data.
-                if any(strcmpi(devices{d},{'knob','lever'}))                            %If we're plotting knob data...
-                    str(2:3) = {'Mean Peak Angle','Median Peak Angle'};                 %Set the plots to show "angle" instead of "force".
-                elseif ~any(strcmpi(devices{d},{'knob','lever','pull'}))                %Otherwise, if this isn't pull, knob, or lever data...
-                    str(2:3) = {'Mean Signal Peak','Median Signal Peak'};               %Set the plots to show "signal" instead of "peak force".
-                end
-                pos = [sp2, h-sp1-ui_h, 2*(w-6*sp2)/6, ui_h];                           %Set the position for the pop-up menu.
-                obj(1) = uicontrol(fig,'style','popup','string',str,...
-                    'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
-                str = {'Session','Day','Week','Export'};                            %List the timescale labels.
-                for i = 2:5                                                             %Step through the 3 timescales.
-                    pos = [i*sp2+i*(w-6*sp2)/6, h-sp1-ui_h, (w-6*sp2)/6, ui_h];         %Set the position for each pushbutton.
-                    obj(i) = uicontrol(fig,'style','pushbutton','string',str{i-1},...
-                        'units','centimeters','position',pos,'fontsize',fontsize);      %Create pushbuttons for selecting the timescale.
-                end
-                pos = [sp2, sp1, 2*(w-6*sp2)/6, ui_h]; 
-                obj(6) = uicontrol(fig,'style','radiobutton','string','Concatenate Dates',...
-                    'units','centimeters','position',pos,'fontsize',fontsize);
-                pos = [30*sp2, sp1, 2*(w-6*sp2)/6, ui_h];
-                obj(7) = uicontrol(fig,'style','radiobutton','string','Group Animals',...
-                    'units','centimeters','position',pos,'fontsize',fontsize);
-                set(obj(1),'callback',{@Set_Plot_Type,obj,data});                            %Set the callback for the pop-up menu.
-                set(obj(2:4),'callback',{@Plot_Timeline,obj,[],data});                       %Set the callback for the timescale buttons.
-                set(obj(5),'callback',{@Export_Data,ax,obj,data});                           %Set the callback for the export button.
-                set(obj(6),'callback',{@TrainingDays,obj,data});
-                set(obj(7),'callback',{@GroupAnimals,obj,data});
-                set(fig,'userdata',data);                                                              %Save the plot data to the figure's 'UserData' property.
-                Plot_Timeline(obj(2),[],obj,[],data);                                        %Call the function to plot the session data in the figure.
-                set(fig,'ResizeFcn',{@Resize,ax,obj});
-%             end
-        end
-    end
-end
 
 %% This function is called when the user selects the General Analysis Pushbutton
 function GeneralAnalysis(hObject,~,devices)
@@ -1162,6 +1415,8 @@ pos = [sp2, sp1, 2*(w-6*sp2)/6, ui_h];
 set(obj(6),'units','centimeters','position',pos,'fontsize',fontsize);
 pos = [30*sp2, sp1, 2*(w-6*sp2)/6, ui_h];
 set(obj(7),'units','centimeters','position',pos,'fontsize',fontsize);
+pos = [75*sp2, sp1, 2*(w-6*sp2)/8, .9*ui_h];
+set(obj(8),'units','centimeters','position',pos,'fontsize',fontsize);        
 linewidth = 0.07*h;                                                          %Set the linewidth for the plots.
 markersize = 0.75*h;                                                        %Set the marker size for the plots.
 fontsize = 0.6*h;                                                           %Set the fontsize for all text objects.
