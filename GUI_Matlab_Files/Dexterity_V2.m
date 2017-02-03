@@ -1,4 +1,4 @@
-function Dexterity_REV(varargin)
+function Dexterity_V2(varargin)
 % if ~exist('.git')
 %     path = 'cd C:\Desktop';
 %     cmd = [path...
