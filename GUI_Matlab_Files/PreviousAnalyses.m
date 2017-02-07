@@ -46,7 +46,7 @@ end
 
 function ExistingAnalysis_Jump(hObject,~)
 % index_selected = get(hObject,'value');
-AutomatedAnalysis(hObject);
+StandardAnalysis(hObject);
 end
 
 function ExistingAnnotatedAnalysis_Jump(hObject,~)
