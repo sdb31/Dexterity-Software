@@ -76,7 +76,15 @@ if datapath(1) == 0                                                         %If 
 end
 
 %% Find all of the MotoTrak data files in the data path.
-files = file_miner(datapath,'*.ArdyMotor');                                 %Find all LPS *.ArdyMotor files in the LPS folders.
+files = file_miner(datapath,{'*.ArdyMotor','*.MotoTrak'});                                 %Find all LPS *.ArdyMotor or *.MotoTrak files in the LPS folders.
+% [~,filename,ext] = fileparts(files{f});
+% switch ext
+%     case '.ArdyMotor'
+%         session = ArdyMotorFileRead(files{f});
+%     case '.MotoTrak'
+%         session = MotoTrakFileRead(files{f});
+%         session = MotoTrak_to_ArdyMotor(session);
+% end
 pause(0.01);                                                                %Pause for 10 milliseconds.
 if isempty(files)                                                           %If no files were found...
     errordlg('No MotoTrak data files were found in the that directory!');   %Show an error dialog box.
@@ -187,7 +195,15 @@ for f = 1:length(files)                                                     %Ste
         return                                                              %Skip execution of the rest of the function.
     end
     try                                                                     %Try to read in the data file...
-        temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+        [~,filename,ext] = fileparts(files{f});
+        switch ext
+            case '.ArdyMotor'
+                temp = ArdyMotorFileRead(files{f});
+            case '.MotoTrak'
+                temp = MotoTrakFileRead(files{f});
+                temp = MotoTrak_to_ArdyMotor(temp);
+        end
+%         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
     catch err                                                               %If an error occurs...
         warning(['ERROR READING: ' files{f}]);                              %Show which file had a read problem...
         warning(err.message);                                               %Show the actual error message.
