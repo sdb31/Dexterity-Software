@@ -1093,19 +1093,41 @@ if isempty(fid)                                                             %If 
 else                                                                        %Otherwise...
     [file, path] = uiputfile('*.xls','Save Spreadsheet');
     filename = [path file];
-    for r = 1:length(plotdata)
-        t = vertcat(plotdata(r).x);
-        t = unique(t,'rows');
-        t = cellstr(datestr(t(:,1)));
-        meat = plotdata(r).y;
-        name = cellstr(plotdata(r).rat);
-        xlswrite(filename, {'Rat Name:'}, r,'A1');
-        xlswrite(filename, name, r, 'B1');
-        xlswrite(filename, {'Date/Time'},r,'A2');
-        xlswrite(filename, {'Variable'},r,'B2');
-        xlswrite(filename, t,r,'A3');
-        xlswrite(filename, meat,r,'B3');
-        clear t meat name
+    all_variables = questdlg('Would you like to export all variables?',...
+        'All Variables','Yes','No','No');
+    if any(strcmpi('Yes',all_variables))
+        for r = 1:length(plotdata)
+            t = vertcat(plotdata(r).x);
+            t = unique(t,'rows');
+            t = cellstr(datestr(t(:,1)));
+            meat(:,1) = data(r).peak'; meat(:,2) = data(r).hitrate'; meat(:,3) = data(r).numtrials';
+            meat(:,4) = data(r).peak_velocity'; meat(:,5) = data(r).latency';
+            temp_str = {'Peak','HitRate','Trials','PeakVelocity','Latency'};
+            name = cellstr(plotdata(r).rat);
+            xlswrite(filename, {'Rat Name:'}, r,'A1');
+            xlswrite(filename, name, r, 'B1');
+            xlswrite(filename, {'Date/Time'},r,'A2');
+            xlswrite(filename, temp_str,r,'B2');
+            xlswrite(filename, t,r,'A3');
+            xlswrite(filename, meat,r,'B3');
+            clear t meat name
+        end
+    else
+        for r = 1:length(plotdata)
+            temp_str = cellstr(str);
+            t = vertcat(plotdata(r).x);
+            t = unique(t,'rows');
+            t = cellstr(datestr(t(:,1)));
+            meat = plotdata(r).y;
+            name = cellstr(plotdata(r).rat);
+            xlswrite(filename, {'Rat Name:'}, r,'A1');
+            xlswrite(filename, name, r, 'B1');
+            xlswrite(filename, {'Date/Time'},r,'A2');
+            xlswrite(filename, temp_str,r,'B2');
+            xlswrite(filename, t,r,'A3');
+            xlswrite(filename, meat,r,'B3');
+            clear t meat name
+        end
     end
 %     t = vertcat(plotdata.x);                                                %Vertically concatenate all time-points.
 %     t = unique(t,'rows');                                                   %Find all unique rows of the timepoints.
