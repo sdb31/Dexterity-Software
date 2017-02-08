@@ -1103,7 +1103,7 @@ else                                                                        %Oth
             meat(:,1) = data(r).peak'; meat(:,2) = data(r).hitrate'; meat(:,3) = data(r).numtrials';
             meat(:,4) = data(r).peak_velocity'; meat(:,5) = data(r).latency';
             temp_stage = data(r).stage';
-            temp_str = {'Peak','HitRate','Trials','PeakVelocity','Latency'};
+            temp_str = {'Stage', 'Peak','HitRate','Trials','PeakVelocity','Latency'};
             name = cellstr(plotdata(r).rat);
             xlswrite(filename, {'Rat Name:'}, r,'A1');
             xlswrite(filename, name, r, 'B1');
@@ -1126,7 +1126,8 @@ else                                                                        %Oth
             xlswrite(filename, {'Rat Name:'}, r,'A1');
             xlswrite(filename, name, r, 'B1');
             xlswrite(filename, {'Date/Time'},r,'A2');
-            xlswrite(filename, temp_str,r,'B2');
+            xlswrite(filename, {'Stage'},r,'B2');
+            xlswrite(filename, temp_str,r,'C2');
             xlswrite(filename, t,r,'A3');
             xlswrite(filename, temp_stage,r,'B3');
             xlswrite(filename, meat,r,'C3');
