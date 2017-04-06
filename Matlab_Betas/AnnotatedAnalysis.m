@@ -121,12 +121,24 @@ for d = 1:length(devices)                                                   %Ste
     ax = axes('units','centimeters','position',pos,'box','on',...
         'linewidth',2);                                                     %Create axes for showing the log events histogram.
     obj = zeros(1,6);                                                       %Create a matrix to hold timescale uicontrol handles.
-    str = {'Overall Hit Rate',...
-        'Dummy1',...
-        'Dummy2',...
-        'Trial Count',...
-        'Peak Velocity',...
-        'Latency to Hit'};
+    if strcmp(devices, 'knob') == 1;
+        str = {'Overall Hit Rate',...
+            'Dummy1',...
+            'Dummy2',...
+            'Trial Count',...
+            'Peak Velocity',...
+            'Latency to Hit'};
+    elseif strcmp(devices, 'Pull') == 1;
+        str = {'Overall Hit Rate',...
+            'Trial Count',...
+            'Mean Peak Force'};
+    elseif strcmp(devices, 'Vermicelli') == 1;
+        str = {'Targeted Attempts',...
+            'Non Targeted Attempts',...
+            'Log2 Ratio (T/NT)',...
+            'Normalized TA',...
+            'Normalized NTA'};
+    end
     %         'Hits in First 5 Minutes',...
     %         'Trials in First 5 Minutes',...
     %         'Max. Hits in Any 5 Minutes',...
@@ -137,7 +149,7 @@ for d = 1:length(devices)                                                   %Ste
     %         'Median Peak Impulse'};                                             %List the available plots for the pull data.
     if any(strcmpi(devices{d},{'knob','lever'}))                            %If we're plotting knob data...
         str(2:3) = {'Mean Peak Angle','Median Peak Angle'};                 %Set the plots to show "angle" instead of "force".
-    elseif ~any(strcmpi(devices{d},{'knob','lever','pull'}))                %Otherwise, if this isn't pull, knob, or lever data...
+    elseif ~any(strcmpi(devices{d},{'knob','lever','Pull','Vermicelli'}))                %Otherwise, if this isn't pull, knob, or lever data...
         str(2:3) = {'Mean Signal Peak','Median Signal Peak'};               %Set the plots to show "signal" instead of "peak force".
     end
     pos = [sp2, h-sp1-ui_h, 2*(w-6*sp2)/6, ui_h];                           %Set the position for the pop-up menu.
@@ -278,12 +290,23 @@ for g = 1:length(TimelineData(index_selected).Groups);
         for l = 1:length(Names);
             temp(l) = strcmpi(Names(l),TimelineData(index_selected).Groups(g).Subjects{s});
         end
-%         Loc = Names == TimelineData(index_selected).Groups(g).Subjects{s};
-        TimelineData(index_selected).Groups(g).data.HitRate(s) = {data(temp).hitrate};
-        TimelineData(index_selected).Groups(g).data.TotalTrialCount(s) = {data(temp).numtrials};
-        TimelineData(index_selected).Groups(g).data.Peak(s) = {data(temp).peak};
-        TimelineData(index_selected).Groups(g).data.Peak_Velocity(s) = {data(temp).peak_velocity};
-        TimelineData(index_selected).Groups(g).data.Latency(s) = {data(temp).latency};
+        %         Loc = Names == TimelineData(index_selected).Groups(g).Subjects{s};
+        temp_fieldnames = fieldnames(data(temp));
+        Vermicelli_Check = strfind(temp_fieldnames,'ratio');
+        if find([Vermicelli_Check{:}] == 1) == 1;
+            TimelineData(index_selected).Groups(g).data.TargetedAttempts(s) = {data(temp).mean_targeted};
+            TimelineData(index_selected).Groups(g).data.NonTargetedAttempts(s) = {data(temp).mean_nontargeted};
+            TimelineData(index_selected).Groups(g).data.Ratio(s) = {data(temp).ratio};
+        else
+            % for p = 1:size(temp_fieldnames,2);
+            %    TimelineData(index_selected).Groups(g).data.(temp_fieldnames(p))(s) = {data(temp).(temp_fieldnames{p})};
+            % end
+            TimelineData(index_selected).Groups(g).data.HitRate(s) = {data(temp).hitrate};
+            TimelineData(index_selected).Groups(g).data.TotalTrialCount(s) = {data(temp).numtrials};
+            TimelineData(index_selected).Groups(g).data.Peak(s) = {data(temp).peak};
+            TimelineData(index_selected).Groups(g).data.Peak_Velocity(s) = {data(temp).peak_velocity};
+            TimelineData(index_selected).Groups(g).data.Latency(s) = {data(temp).latency};
+        end
     end
 %     Counter = 1;
     for s = 1:length(TimelineData(index_selected).Groups(g).Subjects);
@@ -291,65 +314,106 @@ for g = 1:length(TimelineData(index_selected).Groups);
         Sessions = strsplit(Sessions);
         SessionCount = cell2mat(TimelineData(index_selected).Groups(g).SessionCount(s));
         for l = 1:length(Sessions);
-            temp_hitrate = cell2mat(TimelineData(index_selected).Groups(g).data.HitRate(s));           
-            temp_TrialCount = cell2mat(TimelineData(index_selected).Groups(g).data.TotalTrialCount(s));
-            temp_Peak = cell2mat(TimelineData(index_selected).Groups(g).data.Peak(s));
-            temp_Peak_Velocity = cell2mat(TimelineData(index_selected).Groups(g).data.Peak_Velocity(s));
-            temp_Latency = cell2mat(TimelineData(index_selected).Groups(g).data.Latency(s));
-            temp_meanhitrate(s,l) = nanmean(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
-            temp_hitratestd(s,l) = nanstd(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
-            temp_MeanTrialCount(s,l) = nanmean(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
-            temp_meantrialcountstd(s,l) = nanstd(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
-            temp_MeanPeak(s,l) = nanmean(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
-            temp_meanpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
-            temp_MedianPeak(s,l) = nanmedian(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
-            temp_medianpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
-            temp_MeanPeakVelocity(s,l) = nanmean(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
-            temp_meanpeakvelocitystd(s,l) = nanstd(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
-            temp_MeanLatency(s,l) = nanmean(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
-            temp_meanlatencystd(s,l) = nanstd(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
+            if find([Vermicelli_Check{:}] == 1) == 1;
+                temp_targetedattempts = cell2mat(TimelineData(index_selected).Groups(g).data.TargetedAttempts(s));
+                temp_nontargetedattempts = cell2mat(TimelineData(index_selected).Groups(g).data.NonTargetedAttempts(s));
+                temp_ratio = cell2mat(TimelineData(index_selected).Groups(g).data.Ratio(s));
+                % Means
+                temp_meantargetedattempts(s,l) = nanmean(temp_targetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meannontargetedattempts(s,l) = nanmean(temp_nontargetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanratio(s,l) = nanmean(temp_ratio((SessionCount(l)+1):SessionCount(l+1)));
+                % Standard Deviations
+                temp_targetedattemptsstd(s,l) = nanstd(temp_targetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_nontargetedattemptsstd(s,l) = nanstd(temp_nontargetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_ratiostd(s,l) = nanstd(temp_ratio((SessionCount(l)+1):SessionCount(l+1)));                
+            else
+                temp_hitrate = cell2mat(TimelineData(index_selected).Groups(g).data.HitRate(s));
+                temp_TrialCount = cell2mat(TimelineData(index_selected).Groups(g).data.TotalTrialCount(s));
+                temp_Peak = cell2mat(TimelineData(index_selected).Groups(g).data.Peak(s));
+                temp_Peak_Velocity = cell2mat(TimelineData(index_selected).Groups(g).data.Peak_Velocity(s));
+                temp_Latency = cell2mat(TimelineData(index_selected).Groups(g).data.Latency(s));
+                temp_meanhitrate(s,l) = nanmean(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
+                temp_hitratestd(s,l) = nanstd(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanTrialCount(s,l) = nanmean(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meantrialcountstd(s,l) = nanstd(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanPeak(s,l) = nanmean(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MedianPeak(s,l) = nanmedian(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_medianpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanPeakVelocity(s,l) = nanmean(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanpeakvelocitystd(s,l) = nanstd(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanLatency(s,l) = nanmean(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanlatencystd(s,l) = nanstd(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
+            end
+            
+        end
+        if find([Vermicelli_Check{:}] == 1) == 1;
+            temp_meannormtargetedattempts(s,:) = temp_meantargetedattempts(s,:)/temp_meantargetedattempts(s,1);            
+            temp_meannormnontargetedattempts(s,:) = temp_meannontargetedattempts(s,:)/temp_meannontargetedattempts(s,1);
         end
     end
-    TimelineData(index_selected).Groups(g).data.PerAnimalHitRate = temp_meanhitrate;
-    TimelineData(index_selected).Groups(g).data.PerAnimalMeanTrialCount = temp_MeanTrialCount;
-    TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeak = temp_MeanPeak;
-    TimelineData(index_selected).Groups(g).data.PerAnimalMedianPeak = temp_MedianPeak;
-    TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeakVelocity = temp_MeanPeakVelocity;
-    TimelineData(index_selected).Groups(g).data.PerAnimalMeanLatency = temp_MeanLatency;
-%     PerAnimal(g).Hitrate = temp_meanhitrate;
-%     PerAnimal(g).MeanTrialCount = temp_MeanTrialCount;
-%     PerAnimal(g).MeanPeak = temp_MeanPeak;
-%     PerAnimal(g).MedianPeak = temp_MedianPeak;
-%     PerAnimal(g).MeanPeakVelocity = temp_MeanPeakVelocity;
-%     PerAnimal(g).MeanLatency = temp_MeanLatency;
-%     PerAnimal(g).Subjects = TimelineData.Groups(g).Subjects;
-    
-    if length(TimelineData(index_selected).Groups(g).Sessions) > 1;
-        temp_hitratestd = nanstd(temp_meanhitrate);
-        temp_meanhitrate = nanmean(temp_meanhitrate);
-        temp_meantrialcountstd = nanstd(temp_MeanTrialCount);
-        temp_MeanTrialCount = nanmean(temp_MeanTrialCount);
-        temp_meanpeakstd = nanstd(temp_MeanPeak);
-        temp_MeanPeak = nanmean(temp_MeanPeak);
-        temp_medianpeakstd = nanstd(temp_MedianPeak);
-        temp_MedianPeak = nanmedian(temp_MedianPeak);
-        temp_meanpeakvelocitystd = nanstd(temp_MeanPeakVelocity);
-        temp_MeanPeakVelocity = nanmean(temp_MeanPeakVelocity);
-        temp_meanlatencystd = nanstd(temp_MeanLatency);
-        temp_MeanLatency = nanmean(temp_MeanLatency);
+    if find([Vermicelli_Check{:}] == 1) == 1;
+        TimelineData(index_selected).Groups(g).data.PerAnimalTargetedAttempts = temp_meantargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNonTargetedAttempts = temp_meannontargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalRatio = temp_meanratio;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNormTargetedAttempts = temp_meannormtargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNormNonTargetedAttempts = temp_meannontargetedattempts;
+        if length(TimelineData(index_selected).Groups(g).Sessions) > 1;
+            temp_targetedattemptsstd = nanstd(temp_meantargetedattempts);
+            temp_meantargetedattempts = nanmean(temp_meantargetedattempts);
+            temp_nontargetedattemptsstd = nanstd(temp_meannontargetedattempts);
+            temp_meannontargetedattempts = nanmean(temp_meannontargetedattempts);
+            temp_ratiostd = nanstd(temp_meanratio);
+            temp_meanratio = nanmean(temp_meanratio); 
+            temp_meannormtargetedattemptsSTD = nanstd(temp_meannormtargetedattempts);
+            temp_meannormtargetedattempts = nanmean(temp_meannormtargetedattempts);
+            temp_meannormnontargetedattemptsSTD = nanstd(temp_meannormnontargetedattempts);
+            temp_meannormnontargetedattempts = nanmean(temp_meannormnontargetedattempts);
+        end
+        TimelineData(index_selected).Groups(g).data.MeanTargetedAttempts = {temp_meantargetedattempts};
+        TimelineData(index_selected).Groups(g).data.TargetedAttemptsStd = {temp_targetedattemptsstd};
+        TimelineData(index_selected).Groups(g).data.MeanNonTargetedAttempts = {temp_meannontargetedattempts};
+        TimelineData(index_selected).Groups(g).data.NonTargetedAttemptsStd = {temp_nontargetedattemptsstd};
+        TimelineData(index_selected).Groups(g).data.MeanRatio = {temp_meanratio};
+        TimelineData(index_selected).Groups(g).data.RatioStd = {temp_ratiostd};    
+        TimelineData(index_selected).Groups(g).data.MeanNormTargetedAttempts = {temp_meannormtargetedattempts};
+        TimelineData(index_selected).Groups(g).data.MeanNormTargetedAttemptsStd = {temp_meannormtargetedattemptsSTD};
+        TimelineData(index_selected).Groups(g).data.MeanNormNonTargetedAttempts = {temp_meannormnontargetedattempts};
+        TimelineData(index_selected).Groups(g).data.MeanNormNonTargetedAttemptsStd = {temp_meannormnontargetedattemptsSTD};
+    else
+        TimelineData(index_selected).Groups(g).data.PerAnimalHitRate = temp_meanhitrate;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanTrialCount = temp_MeanTrialCount;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeak = temp_MeanPeak;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMedianPeak = temp_MedianPeak;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeakVelocity = temp_MeanPeakVelocity;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanLatency = temp_MeanLatency;
+        if length(TimelineData(index_selected).Groups(g).Sessions) > 1;
+            temp_hitratestd = nanstd(temp_meanhitrate);
+            temp_meanhitrate = nanmean(temp_meanhitrate);
+            temp_meantrialcountstd = nanstd(temp_MeanTrialCount);
+            temp_MeanTrialCount = nanmean(temp_MeanTrialCount);
+            temp_meanpeakstd = nanstd(temp_MeanPeak);
+            temp_MeanPeak = nanmean(temp_MeanPeak);
+            temp_medianpeakstd = nanstd(temp_MedianPeak);
+            temp_MedianPeak = nanmedian(temp_MedianPeak);
+            temp_meanpeakvelocitystd = nanstd(temp_MeanPeakVelocity);
+            temp_MeanPeakVelocity = nanmean(temp_MeanPeakVelocity);
+            temp_meanlatencystd = nanstd(temp_MeanLatency);
+            temp_MeanLatency = nanmean(temp_MeanLatency);
+        end
+        TimelineData(index_selected).Groups(g).data.MeanHitRate = {temp_meanhitrate};
+        TimelineData(index_selected).Groups(g).data.hitratestd = {temp_hitratestd};
+        TimelineData(index_selected).Groups(g).data.MeanTrialCount = {temp_MeanTrialCount};
+        TimelineData(index_selected).Groups(g).data.meantrialcountstd = {temp_meantrialcountstd};
+        TimelineData(index_selected).Groups(g).data.MeanPeak = {temp_MeanPeak};
+        TimelineData(index_selected).Groups(g).data.meanpeakstd = {temp_meanpeakstd};
+        TimelineData(index_selected).Groups(g).data.MedianPeak = {temp_MedianPeak};
+        TimelineData(index_selected).Groups(g).data.medianpeakstd = {temp_medianpeakstd};
+        TimelineData(index_selected).Groups(g).data.MeanPeakVelocity = {temp_MeanPeakVelocity};
+        TimelineData(index_selected).Groups(g).data.meanpeakvelocitystd = {temp_meanpeakvelocitystd};
+        TimelineData(index_selected).Groups(g).data.MeanLatency = {temp_MeanLatency};
+        TimelineData(index_selected).Groups(g).data.meanlatencystd = {temp_meanlatencystd};
     end
-    TimelineData(index_selected).Groups(g).data.MeanHitRate = {temp_meanhitrate};
-    TimelineData(index_selected).Groups(g).data.hitratestd = {temp_hitratestd};
-    TimelineData(index_selected).Groups(g).data.MeanTrialCount = {temp_MeanTrialCount};
-    TimelineData(index_selected).Groups(g).data.meantrialcountstd = {temp_meantrialcountstd};
-    TimelineData(index_selected).Groups(g).data.MeanPeak = {temp_MeanPeak};
-    TimelineData(index_selected).Groups(g).data.meanpeakstd = {temp_meanpeakstd};
-    TimelineData(index_selected).Groups(g).data.MedianPeak = {temp_MedianPeak};
-    TimelineData(index_selected).Groups(g).data.medianpeakstd = {temp_medianpeakstd};
-    TimelineData(index_selected).Groups(g).data.MeanPeakVelocity = {temp_MeanPeakVelocity};
-    TimelineData(index_selected).Groups(g).data.meanpeakvelocitystd = {temp_meanpeakvelocitystd};
-    TimelineData(index_selected).Groups(g).data.MeanLatency = {temp_MeanLatency};
-    TimelineData(index_selected).Groups(g).data.meanlatencystd = {temp_meanlatencystd};
 end
 
 TrialViewerData = data;
@@ -386,7 +450,11 @@ colors = 'kbrgy';
 linestyles = {'-' '--' ':' '-.'};  
 markerstyles = {'o' 's' 'x' 'd' '<' '>' 'p' 'h'};
 numbars = length(TimelineData(index_selected).Groups);
-numgroups = length(cell2mat(TimelineData(index_selected).Groups(1).data.MeanHitRate));
+if find([Vermicelli_Check{:}] == 1) == 1;
+    numgroups = length(cell2mat(TimelineData(index_selected).Groups(1).data.MeanTargetedAttempts));
+else
+    numgroups = length(cell2mat(TimelineData(index_selected).Groups(1).data.MeanHitRate));
+end
 groupwidth = min(0.8, numbars/(numbars+1.5));
 if strcmpi(str,'overall hit rate')                              %If we're plotting overall hit rate...
     ax = gcf; cla(ax); %tempaxis = gca;
@@ -756,73 +824,383 @@ elseif strcmpi(str,'latency to hit');
         text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
         hold off;
     end
+elseif strcmpi(str,'Targeted Attempts');
+     ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        TargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanTargetedAttempts);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.TargetedAttemptsStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(TargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(TargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(TargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(TargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = TargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            temp = bar(TargetedAttempts);
+            switch Grayscale_string
+                case 'Color'
+                    for p = 1:length(temp)
+                        temp(p).FaceColor = colors(p);
+                        temp(p).EdgeColor = colors(p);
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, TargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(TargetedAttempts)),colors(i), 'linestyle', 'none');
+                    end
+                    hold off;
+                case 'Gray'
+                    for p = 1:length(temp)
+                        temp(p).LineStyle = linestyles{p};
+                        temp(p).FaceColor = p*[.15 .15 .15];
+                        temp(p).EdgeColor = 'k';
+                        temp(p).LineWidth = 1.5;
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, TargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(TargetedAttempts)),'k', 'linestyle', 'none');
+                    end
+                    hold off;
+            end
+    end
+    YMax = 1.4*max(max(TargetedAttempts)); YMax = round(YMax,-1);
+    legend(GroupLegend,0,'Fontsize',10); box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [0 YMax],...
+        'XLim', [.5 length(TargetedAttempts)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);
+elseif strcmpi(str,'Non Targeted Attempts');
+    ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        NonTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNonTargetedAttempts);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.NonTargetedAttemptsStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(NonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NonTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(NonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NonTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = NonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            temp = bar(NonTargetedAttempts);
+            switch Grayscale_string
+                case 'Color'
+                    for p = 1:length(temp)
+                        temp(p).FaceColor = colors(p);
+                        temp(p).EdgeColor = colors(p);
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NonTargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(NonTargetedAttempts)),colors(i), 'linestyle', 'none');
+                    end
+                    hold off;
+                case 'Gray'
+                    for p = 1:length(temp)
+                        temp(p).LineStyle = linestyles{p};
+                        temp(p).FaceColor = p*[.15 .15 .15];
+                        temp(p).EdgeColor = 'k';
+                        temp(p).LineWidth = 1.5;
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NonTargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(NonTargetedAttempts)),'k', 'linestyle', 'none');
+                    end
+                    hold off;
+            end
+    end
+    YMax = 1.4*max(max(NonTargetedAttempts)); YMax = round(YMax,-1);
+    legend(GroupLegend,0,'Fontsize',10); box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [0 YMax],...
+        'XLim', [.5 length(NonTargetedAttempts)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);
+elseif strcmpi(str,'Log2 Ratio (T/NT)');
+    ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        Ratio(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanRatio);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.RatioStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(Ratio(:,p), StandardDev(:,p)./sqrt(length(Ratio)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(Ratio(:,p), StandardDev(:,p)./sqrt(length(Ratio)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = Ratio(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            temp = bar(Ratio);
+            switch Grayscale_string
+                case 'Color'
+                    for p = 1:length(temp)
+                        temp(p).FaceColor = colors(p);
+                        temp(p).EdgeColor = colors(p);
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, Ratio(:,i)', StandardDev(:,i)'./sqrt(length(Ratio)),colors(i), 'linestyle', 'none');
+                    end
+                    hold off;
+                case 'Gray'
+                    for p = 1:length(temp)
+                        temp(p).LineStyle = linestyles{p};
+                        temp(p).FaceColor = p*[.15 .15 .15];
+                        temp(p).EdgeColor = 'k';
+                        temp(p).LineWidth = 1.5;
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, Ratio(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(Ratio)),'k', 'linestyle', 'none');
+                    end
+                    hold off;
+            end
+    end
+%     YMax = 3*max(max(Ratio)); YMin = 3*min(min(Ratio));
+    legend(GroupLegend,0,'Fontsize',10); box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [-3.5 2],...
+        'XLim', [.5 length(Ratio)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);
+elseif strcmp(str,'Normalized TA')
+    ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        NormTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormTargetedAttempts);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormTargetedAttemptsStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = NormTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalNormTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            temp = bar(NormTargetedAttempts);
+            switch Grayscale_string
+                case 'Color'
+                    for p = 1:length(temp)
+                        temp(p).FaceColor = colors(p);
+                        temp(p).EdgeColor = colors(p);
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NormTargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(NormTargetedAttempts)),colors(i), 'linestyle', 'none');
+                    end
+                    hold off;
+                case 'Gray'
+                    for p = 1:length(temp)
+                        temp(p).LineStyle = linestyles{p};
+                        temp(p).FaceColor = p*[.15 .15 .15];
+                        temp(p).EdgeColor = 'k';
+                        temp(p).LineWidth = 1.5;
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NormTargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(NormTargetedAttempts)),'k', 'linestyle', 'none');
+                    end
+                    hold off;
+            end
+    end
+    YMax = 1.4*max(max(NormTargetedAttempts)); 
+    legend(GroupLegend,0,'Fontsize',10); box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [0 YMax],...
+        'XLim', [.5 length(NormTargetedAttempts)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);
+elseif strcmp(str,'Normalized NTA')
+    ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        NormNonTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttempts);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttemptsStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = NormNonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            temp = bar(NormNonTargetedAttempts);
+            switch Grayscale_string
+                case 'Color'
+                    for p = 1:length(temp)
+                        temp(p).FaceColor = colors(p);
+                        temp(p).EdgeColor = colors(p);
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NormNonTargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(NormNonTargetedAttempts)),colors(i), 'linestyle', 'none');
+                    end
+                    hold off;
+                case 'Gray'
+                    for p = 1:length(temp)
+                        temp(p).LineStyle = linestyles{p};
+                        temp(p).FaceColor = p*[.15 .15 .15];
+                        temp(p).EdgeColor = 'k';
+                        temp(p).LineWidth = 1.5;
+                    end
+                    hold on;
+                    for i = 1:numbars
+                        x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+                        errorbar(x, NormNonTargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(NormNonTargetedAttempts)),'k', 'linestyle', 'none');
+                    end
+                    hold off;
+            end
+    end
+    YMax = 1.4*max(max(NormNonTargetedAttempts)); 
+    legend(GroupLegend,0,'Fontsize',10); box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [0 YMax],...
+        'XLim', [.5 length(NormNonTargetedAttempts)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);
 end
 
-CSV_Data = CSV_Data'; 
-t = unique(horzcat(data.times));                                            %Horizontally concatenate all of the timestamps.
-t = unique(fix(t));                                                     %Find the unique truncated serial date numbers.
-t = [t; t + 1]';
-t = [min(fix(t)), max(fix(t))];                                         %Find the first and last timestamp.
-i = find(strcmpi({'sun','mon','tue','wed','thu','fri','sat'},...
-    datestr(t(1),'ddd')));                                              %Find the index for the day of the week of the first timestamp.
-t(1) = t(1) - i + 1;                                                    %Round down the timestamp to the nearest Sunday.
-t = t(1):7:t(2);                                                        %Find the timestamps for weekly spacing.
-t = [t; t + 7]';                                                        %Set the time bounds to go from the start of the week to the end of the week.
+% CSV_Data = CSV_Data'; 
+% t = unique(horzcat(data.times));                                            %Horizontally concatenate all of the timestamps.
+% t = unique(fix(t));                                                     %Find the unique truncated serial date numbers.
+% t = [t; t + 1]';
+% t = [min(fix(t)), max(fix(t))];                                         %Find the first and last timestamp.
+% i = find(strcmpi({'sun','mon','tue','wed','thu','fri','sat'},...
+%     datestr(t(1),'ddd')));                                              %Find the index for the day of the week of the first timestamp.
+% t(1) = t(1) - i + 1;                                                    %Round down the timestamp to the nearest Sunday.
+% t = t(1):7:t(2);                                                        %Find the timestamps for weekly spacing.
+% t = [t; t + 7]';                                                        %Set the time bounds to go from the start of the week to the end of the week.
 
 str = get(obj(1),'string');                                                 %Grab the strings from the pop-up menu.
 i = get(obj(1),'value');                                                    %Grab the value of the pop-up menu.
 str = str{i};                                                               %Grab the selected plot type.
 plotdata = struct([]);                                                      %Create a structure to hold plot data.
-for r = 1:length(data)                                                      %Step through each rat in the data structure.
-    plotdata(r).rat = data(r).rat;                                          %Copy the rat name to the plot data structure.
-    y = nan(1,size(t,1));                                                   %Pre-allocate a matrix to hold the data y-coordinates.
-    s = cell(1,size(t,1));                                                  %Pre-allocate a cell array to hold the last stage of each time frame.
-    n = cell(1,size(t,1));                                                  %Pre-allocate a cell array to hold the hit rate and trial count text.
-    for i = 1:size(t,1)                                                     %Step through the specified time frames.
-        j = data(r).times >= t(i,1) & data(r).times < t(i,2);               %Find all sessions within the time frame.
-        if any(j)                                                           %If any sessions are found.
-            if strcmpi(str,'overall hit rate')                              %If we're plotting overall hit rate...
-                y(i) = nanmean(data(r).hitrate(j));                         %Grab the mean hit rate over this time frame.
-            elseif strcmpi(str,'total trial count')                         %If we're plotting trial count...
-                y(i) = nanmean(data(r).numtrials(j));                       %Grab the mean number of trials over this time frame.
-            elseif any(strcmpi(str,{'median peak force',...
-                    'median peak angle','median signal peak'}))             %If we're plotting the median signal peak...
-                y(i) = nanmedian(data(r).peak(j));                          %Grab the mean signal peak over this time frame.
-            elseif any(strcmpi(str,{'mean peak force',...
-                    'mean peak angle','mean signal peak'}))                 %If we're plotting the mean signal peak...
-                y(i) = nanmean(data(r).peak(j));                            %Grab the mean signal peak over this time frame.
-            elseif strcmpi(str,'trial count')                               %If we're plotting number of trials....
-                y(i) = nanmean(data(r).numtrials(j));                       %Grab the mean number of trials over this time frame.
-            elseif strcmpi(str,'hits in first 5 minutes')                   %If we're plotting the hit count within the first 5 minutes.
-                y(i) = nanmean(data(r).first_hit_five(j));                  %Grab the mean number of hits within the first 5 minutes over this time frame.
-            elseif strcmpi(str,'trials in first 5 minutes')                 %If we're plotting the trial count within the first 5 minutes.
-                y(i) = nanmean(data(r).first_trial_five(j));                %Grab the mean number of hits within the first 5 minutes over this time frame.
-            elseif strcmpi(str,'max. hits in any 5 minutes')                %If we're plotting the maximum hit count within any 5 minutes.
-                y(i) = nanmean(data(r).any_hit_five(j));                    %Grab the mean maximum number of hits within any 5 minutes over this time frame.
-            elseif strcmpi(str,'max. trials in any 5 minutes')              %If we're plotting the maximum trial count within any 5 minutes.
-                y(i) = nanmean(data(r).any_trial_five(j));                  %Grab the mean maximum number of trials within any 5 minutes over this time frame.
-            elseif strcmpi(str,'max. hit rate in any 5 minutes')            %If we're plotting the maximum hit rate within any 5 minutes.
-                y(i) = nanmean(data(r).any_hitrate_five(j));                %Grab the mean maximum hit rate within any 5 minutes over this time frame.
-            elseif strcmpi(str,'min. inter-trial interval (smoothed)')      %If we're plotting the minimum inter-trial interval.
-                y(i) = nanmean(data(r).min_iti(j));                         %Grab the mean minimum inter-trial interval over this time frame.
-            elseif strcmpi(str,'median peak impulse')                       %If we're plotting the median signal impulse...
-                y(i) = nanmedian(data(r).impulse(j));                       %Grab the mean signal impulse over this time frame.
-            elseif strcmpi(str,'mean peak impulse')                         %If we're plotting the mean signal impulse...
-                y(i) = nanmean(data(r).impulse(j));                         %Grab the mean signal impulse over this time frame.
-            end
-            temp = [nanmean(data(r).hitrate(j)),...
-                nansum(data(r).numtrials(j))];                              %Grab the mean hit rate and total number of trials over this time frame.
-            temp(1) = temp(1)*temp(2);                                      %Calculate the number of hits in the total number of trials.
-            n{i} = sprintf('%1.0f hits/%1.0f trials',temp);                 %Create a string showing the number of hits and trials.
-            j = find(j,1,'last');                                           %Find the last matching session.
-            s{i} = data(r).stage{j};                                        %Save the last stage the rat ran on for this trime frame.            
-        end
-    end
-    plotdata(r).x = t(~isnan(y),:);                                         %Grab the daycodes at the start of each time frame.
-    plotdata(r).y = y(~isnan(y))';                                          %Save only the non-NaN y-coordinates.
-    plotdata(r).s = s(~isnan(y))';                                          %Save the stage information for each time frame.
-    plotdata(r).n = n(~isnan(y))';                                          %Save the hit rate and trial information for each time frame.
-end
+% for r = 1:length(data)                                                      %Step through each rat in the data structure.
+%     plotdata(r).rat = data(r).rat;                                          %Copy the rat name to the plot data structure.
+%     y = nan(1,size(t,1));                                                   %Pre-allocate a matrix to hold the data y-coordinates.
+%     s = cell(1,size(t,1));                                                  %Pre-allocate a cell array to hold the last stage of each time frame.
+%     n = cell(1,size(t,1));                                                  %Pre-allocate a cell array to hold the hit rate and trial count text.
+%     for i = 1:size(t,1)                                                     %Step through the specified time frames.
+%         j = data(r).times >= t(i,1) & data(r).times < t(i,2);               %Find all sessions within the time frame.
+%         if any(j)                                                           %If any sessions are found.
+%             if strcmpi(str,'overall hit rate')                              %If we're plotting overall hit rate...
+%                 y(i) = nanmean(data(r).hitrate(j));                         %Grab the mean hit rate over this time frame.
+%             elseif strcmpi(str,'total trial count')                         %If we're plotting trial count...
+%                 y(i) = nanmean(data(r).numtrials(j));                       %Grab the mean number of trials over this time frame.
+%             elseif any(strcmpi(str,{'median peak force',...
+%                     'median peak angle','median signal peak'}))             %If we're plotting the median signal peak...
+%                 y(i) = nanmedian(data(r).peak(j));                          %Grab the mean signal peak over this time frame.
+%             elseif any(strcmpi(str,{'mean peak force',...
+%                     'mean peak angle','mean signal peak'}))                 %If we're plotting the mean signal peak...
+%                 y(i) = nanmean(data(r).peak(j));                            %Grab the mean signal peak over this time frame.
+%             elseif strcmpi(str,'trial count')                               %If we're plotting number of trials....
+%                 y(i) = nanmean(data(r).numtrials(j));                       %Grab the mean number of trials over this time frame.
+%             elseif strcmpi(str,'hits in first 5 minutes')                   %If we're plotting the hit count within the first 5 minutes.
+%                 y(i) = nanmean(data(r).first_hit_five(j));                  %Grab the mean number of hits within the first 5 minutes over this time frame.
+%             elseif strcmpi(str,'trials in first 5 minutes')                 %If we're plotting the trial count within the first 5 minutes.
+%                 y(i) = nanmean(data(r).first_trial_five(j));                %Grab the mean number of hits within the first 5 minutes over this time frame.
+%             elseif strcmpi(str,'max. hits in any 5 minutes')                %If we're plotting the maximum hit count within any 5 minutes.
+%                 y(i) = nanmean(data(r).any_hit_five(j));                    %Grab the mean maximum number of hits within any 5 minutes over this time frame.
+%             elseif strcmpi(str,'max. trials in any 5 minutes')              %If we're plotting the maximum trial count within any 5 minutes.
+%                 y(i) = nanmean(data(r).any_trial_five(j));                  %Grab the mean maximum number of trials within any 5 minutes over this time frame.
+%             elseif strcmpi(str,'max. hit rate in any 5 minutes')            %If we're plotting the maximum hit rate within any 5 minutes.
+%                 y(i) = nanmean(data(r).any_hitrate_five(j));                %Grab the mean maximum hit rate within any 5 minutes over this time frame.
+%             elseif strcmpi(str,'min. inter-trial interval (smoothed)')      %If we're plotting the minimum inter-trial interval.
+%                 y(i) = nanmean(data(r).min_iti(j));                         %Grab the mean minimum inter-trial interval over this time frame.
+%             elseif strcmpi(str,'median peak impulse')                       %If we're plotting the median signal impulse...
+%                 y(i) = nanmedian(data(r).impulse(j));                       %Grab the mean signal impulse over this time frame.
+%             elseif strcmpi(str,'mean peak impulse')                         %If we're plotting the mean signal impulse...
+%                 y(i) = nanmean(data(r).impulse(j));                         %Grab the mean signal impulse over this time frame.
+%             end
+%             temp = [nanmean(data(r).hitrate(j)),...
+%                 nansum(data(r).numtrials(j))];                              %Grab the mean hit rate and total number of trials over this time frame.
+%             temp(1) = temp(1)*temp(2);                                      %Calculate the number of hits in the total number of trials.
+%             n{i} = sprintf('%1.0f hits/%1.0f trials',temp);                 %Create a string showing the number of hits and trials.
+%             j = find(j,1,'last');                                           %Find the last matching session.
+%             s{i} = data(r).stage{j};                                        %Save the last stage the rat ran on for this trime frame.            
+%         end
+%     end
+%     plotdata(r).x = t(~isnan(y),:);                                         %Grab the daycodes at the start of each time frame.
+%     plotdata(r).y = y(~isnan(y))';                                          %Save only the non-NaN y-coordinates.
+%     plotdata(r).s = s(~isnan(y))';                                          %Save the stage information for each time frame.
+%     plotdata(r).n = n(~isnan(y))';                                          %Save the hit rate and trial information for each time frame.
+% end
 ax = get(fig,'children');                                                   %Grab all children of the figure.
 ax(~strcmpi(get(ax,'type'),'axes')) = [];                                   %Kick out all non-axes objects.
 if isempty(fid)                                                             %If no text file handle was passed to this function...
@@ -840,66 +1218,7 @@ else                                                                        %Oth
         xlswrite(filename,TimelineData(index_selected).Groups(d).Subjects,d,'A5');
         xlswrite(filename,GroupInfo(d).data',d,'A6');
     end
-%     fopen(filename);
 winopen(filename)
-%     msgbox('Done!');
-%     fprintf(fid,'%s,\t','Experiment Name:');
-%     fprintf(fid,'%s,\n',TimelineData(index_selected).ExpName{:});
-%     fprintf(fid,'%s,\t','Groups:');
-%     for g = 1:length(TimelineData(index_selected).Groups)
-%         if g == length(TimelineData(index_selected).Groups);
-%             fprintf(fid,'%s,\n\n',TimelineData(index_selected).Groups(g).name{:});
-%         else
-%             fprintf(fid,'%s,\t',TimelineData(index_selected).Groups(g).name{:});
-%         end
-%     end
-%     for g = 1:length(TimelineData(index_selected).Groups)
-%         fprintf(fid,'%s Subjects,\t',TimelineData(index_selected).Groups(g).name{:});
-%         for s = 1:length(TimelineData(index_selected).Groups(g).Subjects);
-%             if s == length(TimelineData(index_selected).Groups(g).Subjects);
-%                 fprintf(fid,'%s,\n',TimelineData(index_selected).Groups(g).Subjects{s});
-%             else
-%                 fprintf(fid,'%s,\t',TimelineData(index_selected).Groups(g).Subjects{s});
-%             end
-%         end
-%     end
-%     fprintf(fid,'\n%s\n',str);
-%     for g = 1:length(TimelineData(index_selected).Groups)
-%         if g == length(TimelineData(index_selected).Groups);
-%             fprintf(fid,'%s,\n',TimelineData(index_selected).Groups(g).name{:});
-%         else
-%             fprintf(fid,'%s,\t',TimelineData(index_selected).Groups(g).name{:});
-%         end
-%     end
-%     for d = 1:length(CSV_Data);
-%         for g = 1:length(TimelineData(index_selected).Groups)
-%             if g == length(TimelineData(index_selected).Groups)
-%                 fprintf(fid,'%f,\n',CSV_Data(g,d));
-%             else
-%                 fprintf(fid,'%f,\t',CSV_Data(g,d));
-%             end
-%         end
-%     end
-%     fprintf(fid,'\n%s','Group Data');
-%     for d = 1:length(TimelineData(index_selected).Groups);
-%         fprintf(fid,'\n%s\n',TimelineData(index_selected).Groups(d).name{:});
-%         for g = 1:length(TimelineData(index_selected).Groups(d).Subjects);
-%             if g == length(TimelineData(index_selected).Groups(d).Subjects);
-%                 fprintf(fid,'%s,\n',TimelineData(index_selected).Groups(d).Subjects{g});
-%             else
-%                 fprintf(fid,'%s,\t',TimelineData(index_selected).Groups(d).Subjects{g});
-%             end
-%         end
-%         for i = 1:size(GroupInfo(d).data,2);
-%             for g = 1:length(TimelineData(index_selected).Groups(d).Subjects);
-%                 if g == length(TimelineData(index_selected).Groups(d).Subjects);
-%                     fprintf(fid,'%d,\n',GroupInfo(d).data(g,i));
-%                 else
-%                     fprintf(fid,'%d,\t',GroupInfo(d).data(g,i));
-%                 end
-%             end
-%         end
-%     end
 end
 
 %% This subfunction sorts the data into daily values and sends it to the plot function.
