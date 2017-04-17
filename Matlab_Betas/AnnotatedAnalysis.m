@@ -137,7 +137,8 @@ for d = 1:length(devices)                                                   %Ste
             'Non Targeted Attempts',...
             'Log2 Ratio (T/NT)',...
             'Normalized TA',...
-            'Normalized NTA'};
+            'Normalized NTA',...
+            'Both NTA and NNTA'};
     end
     %         'Hits in First 5 Minutes',...
     %         'Trials in First 5 Minutes',...
@@ -904,7 +905,7 @@ elseif strcmpi(str,'Non Targeted Attempts');
                 end
         end
         hold off;
-        CSV_Data(:,p) = NonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+        CSV_Data(:,p) = NonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalNonTargetedAttempts;
     end
     switch Plotvalue
         case 'Bar'
@@ -966,7 +967,7 @@ elseif strcmpi(str,'Log2 Ratio (T/NT)');
                 end
         end
         hold off;
-        CSV_Data(:,p) = Ratio(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+        CSV_Data(:,p) = Ratio(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalRatio;
     end
     switch Plotvalue
         case 'Bar'
@@ -1090,7 +1091,7 @@ elseif strcmp(str,'Normalized NTA')
                 end
         end
         hold off;
-        CSV_Data(:,p) = NormNonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+        CSV_Data(:,p) = NormNonTargetedAttempts(:,p); GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalNormNonTargetedAttempts;
     end
     switch Plotvalue
         case 'Bar'
@@ -1134,6 +1135,78 @@ elseif strcmp(str,'Normalized NTA')
         hold off;
     end
     set(gca,'XTick',1:numgroups);
+elseif strcmp(str,'Both NTA and NNTA')
+   ax = gcf; cla(ax);
+    for p = 1:length(TimelineData(index_selected).Groups)
+        NormTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormTargetedAttempts);
+        NormNonTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttempts);
+        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttemptsStd);
+        GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
+        hold on;
+        gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+        switch Plotvalue
+            case 'Line'
+                switch Grayscale_string
+                    case 'Color'
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', colors(p), 'Marker', 's','MarkerFaceColor', colors(p));
+                    case 'Gray'
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                end
+        end
+        hold off;
+        CSV_Data(:,p) = NormNonTargetedAttempts(:,p); 
+        GroupInfo(p).data = TimelineData(index_selected).Groups(p).data.PerAnimalTargetedAttempts;
+    end
+    switch Plotvalue
+        case 'Bar'
+            %             temp = bar(NormNonTargetedAttempts);
+            %             temp2 = bar(NormTargetedAttempts);
+            %             switch Grayscale_string
+            %                 case 'Color'
+            %                     for p = 1:length(temp)
+            %                         temp(p).FaceColor = colors(p);
+            %                         temp(p).EdgeColor = colors(p);
+            %                     end
+            %                     hold on;
+            %                     for i = 1:numbars
+            %                         x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+            %                         errorbar(x, NormNonTargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(NormNonTargetedAttempts)),colors(i), 'linestyle', 'none');
+            %                         errorbar(x, NormTargetedAttempts(:,i)', StandardDev(:,i)'./sqrt(length(NormTargetedAttempts)),colors(i), 'linestyle', 'none');
+            %                     end
+            %                     hold off;
+            %                 case 'Gray'
+            %                     for p = 1:length(temp)
+            %                         temp(p).LineStyle = linestyles{p};
+            %                         temp(p).FaceColor = p*[.15 .15 .15];
+            %                         temp(p).EdgeColor = 'k';
+            %                         temp(p).LineWidth = 1.5;
+            %                     end
+            %                     hold on;
+            %                     for i = 1:numbars
+            %                         x = (1:numgroups) - groupwidth/2 + (2*i-1) * groupwidth / (2*numbars);  % Aligning error bar with individual bar
+            %                         errorbar(x, NormNonTargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(NormNonTargetedAttempts)),'k', 'linestyle', 'none');
+            %                         errorbar(x, NormTargetedAttempts(:,i)', zeros(size(x)),StandardDev(:,i)'./sqrt(length(NormTargetedAttempts)),'k', 'linestyle', 'none');
+            %                     end
+            %                     hold off;
+            %             end
+            msgbox('Not yet working yet!')
+            return;
+    end
+    YMax = 1.4*max(max([NormNonTargetedAttempts NormTargetedAttempts])); 
+    legend({'Non Targeted','Targeted'},0,'Fontsize',10); 
+    box off; set(gca, 'TickDir', 'out','Linewidth', linewidth,'YLim', [-.5 YMax],...
+        'XLim', [.5 length(NormNonTargetedAttempts)+.5],'XTickLabels', xlabels);
+    yL = get(gca, 'YLim'); yLMax = max(yL);
+    for q = 1:length(EventData);
+        hold on;
+        x = EventData(q).location - .5;
+        line([x x], yL, 'Color', 'k', 'Linestyle', '--');
+        text(x,.95*yLMax, ['\leftarrow' char(EventData(q).name)]);
+        hold off;
+    end
+    set(gca,'XTick',1:numgroups);  
 end
 
 % CSV_Data = CSV_Data'; 
