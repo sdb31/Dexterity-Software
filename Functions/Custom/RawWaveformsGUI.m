@@ -1,7 +1,12 @@
 function RawWaveformsGUI(vargarin)
-[files, path] = uigetfile('*.ArdyMotor', ...
+[files, path] = uigetfile('*.ArdyMotor',...
     'Select Animal(s) Data', ...
     'multiselect','on');
+% [files, path] = uigetfile('*.MotoTrak',...
+%     'Select Animal(s) Data', ...
+%     'multiselect','on');
+% [files, path] = uigetfile('Select Animal(s) Data', ...
+%     'multiselect','on');
 cd(path);
 if ischar(files)                                                        %If only one file was selected...
     files = {files};                                                    %Convert the string to a cell array.
@@ -12,13 +17,47 @@ for i = 1:length(files)
 end
 [row, col] = find(Bytes>25000);
 files = files(col);
+% for f = 1:length(files);
+%     try                                                                     %Try to read in the data file...
+%         [~,filename,ext] = fileparts(files{f});
+%         switch ext
+%             case '.ArdyMotor'
+%                 temp = ArdyMotorFileRead(files{f});
+%             case '.MotoTrak'
+%                 temp = MotoTrakFileRead(files{f});
+%                 temp = MotoTrak_to_ArdyMotor(temp);
+%                 temp.rat = temp.subject;
+%         end
+%         %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+%     catch err                                                               %If an error occurs...
+%         warning(['ERROR READING: ' files{f}]);                              %Show which file had a read problem...
+%         warning(err.message);                                               %Show the actual error message.
+%         continue
+%     end
+% end
 knob_data.trial_length = 500;
 knob_data.num_sessions = length(files);
 knob_data.combined_sessions_length = 0;
 knob_data.session_length = nan(1, length(files));
 knob_data.max_session_trials = 0;
 for s = 1:knob_data.num_sessions
-    data = ArdyMotorFileRead(files{s});
+    try                                                                     %Try to read in the data file...
+        [~,filename,ext] = fileparts(files{s});
+        switch ext
+            case '.ArdyMotor'
+                data = ArdyMotorFileRead(files{s});
+            case '.MotoTrak'
+                data = MotoTrakFileRead(files{s});
+                data = MotoTrak_to_ArdyMotor(data);
+                data.rat = data.subject;
+        end
+        %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+    catch err                                                               %If an error occurs...
+        warning(['ERROR READING: ' files{s}]);                              %Show which file had a read problem...
+        warning(err.message);                                               %Show the actual error message.
+        continue
+    end
+%     data = ArdyMotorFileRead(files{s});
     temp = length(data.trial);
     knob_data.combined_length = temp+knob_data.combined_sessions_length;
     knob_data.session_length(s) = temp;
@@ -57,8 +96,28 @@ Latency_To_Hit = nan(2000, length(Sessions));
 for i = 1:length(Weeks);
     knob_data.trial2 = nan(Weekly_Trial_Sum(i), 500, length(Weeks));
     for s = 1:knob_data.num_sessions
-        data = ArdyMotorFileRead(files{s});
+        try                                                                     %Try to read in the data file...
+            [~,filename,ext] = fileparts(files{s});
+            switch ext
+                case '.ArdyMotor'
+                    data = ArdyMotorFileRead(files{s});
+                case '.MotoTrak'
+                    data = MotoTrakFileRead(files{s});
+                    data = MotoTrak_to_ArdyMotor(data);
+                    data.rat = data.subject;
+            end
+            %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+        catch err                                                               %If an error occurs...
+            warning(['ERROR READING: ' files{s}]);                              %Show which file had a read problem...
+            warning(err.message);                                               %Show the actual error message.
+            continue
+        end
+        
+        %         data = ArdyMotorFileRead(files{s});
         for t = 1:knob_data.session_length(s);
+            if size(data.trial(t).signal,1) > size(data.trial(t).signal,2)
+                data.trial(t).signal = data.trial(t).signal';
+            end
             knob_data.trial(t,:,s) = data.trial(t).signal;
             %             knob_data.trial2(t,i) = data.trial(t).signal;
             knob_data.thresh(t,:,s) = data.trial(t).thresh;
