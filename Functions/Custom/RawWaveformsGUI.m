@@ -246,7 +246,7 @@ for i = 1:Weeks
                 Median_Plot(m,j) = nanmedian(knob_data.trial(:,j,m));
             end
         end
-        TempMatrix = datasample(TempMatrqix,Min_Random_Trials,'Replace', false);
+        TempMatrix = datasample(TempMatrix,Min_Random_Trials,'Replace', false);
         hold on;
         for t = 1:Min_Random_Trials;
             patchline(1:500, TempMatrix(t,:), 'edgecolor', 'b', 'linewidth', .5, 'edgealpha', 0.05);
