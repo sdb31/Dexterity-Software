@@ -1,12 +1,7 @@
 function RawWaveformsGUI(vargarin)
-[files, path] = uigetfile('*.ArdyMotor',...
+[files, path] = uigetfile({'*.MotoTrak;*.ArdyMotor'},...
     'Select Animal(s) Data', ...
     'multiselect','on');
-% [files, path] = uigetfile('*.MotoTrak',...
-%     'Select Animal(s) Data', ...
-%     'multiselect','on');
-% [files, path] = uigetfile('Select Animal(s) Data', ...
-%     'multiselect','on');
 cd(path);
 if ischar(files)                                                        %If only one file was selected...
     files = {files};                                                    %Convert the string to a cell array.
@@ -17,24 +12,6 @@ for i = 1:length(files)
 end
 [row, col] = find(Bytes>25000);
 files = files(col);
-% for f = 1:length(files);
-%     try                                                                     %Try to read in the data file...
-%         [~,filename,ext] = fileparts(files{f});
-%         switch ext
-%             case '.ArdyMotor'
-%                 temp = ArdyMotorFileRead(files{f});
-%             case '.MotoTrak'
-%                 temp = MotoTrakFileRead(files{f});
-%                 temp = MotoTrak_to_ArdyMotor(temp);
-%                 temp.rat = temp.subject;
-%         end
-%         %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
-%     catch err                                                               %If an error occurs...
-%         warning(['ERROR READING: ' files{f}]);                              %Show which file had a read problem...
-%         warning(err.message);                                               %Show the actual error message.
-%         continue
-%     end
-% end
 knob_data.trial_length = 500;
 knob_data.num_sessions = length(files);
 knob_data.combined_sessions_length = 0;
@@ -118,7 +95,7 @@ for i = 1:length(Weeks);
             if size(data.trial(t).signal,1) > size(data.trial(t).signal,2)
                 data.trial(t).signal = data.trial(t).signal';
             end
-            knob_data.trial(t,:,s) = data.trial(t).signal;
+            knob_data.trial(t,:,s) = data.trial(t).signal(1,1:500);
             %             knob_data.trial2(t,i) = data.trial(t).signal;
             knob_data.thresh(t,:,s) = data.trial(t).thresh;
             knob_data.outcome(t,:,s) = data.trial(t).outcome;
@@ -131,11 +108,30 @@ for i = 1:Weeks
         
         figure; clf;
         for m = (Session_Count(i)+1):(Session_Count(i+1));
-            data = ArdyMotorFileRead(files{m});
+            try                                                                     %Try to read in the data file...
+                [~,filename,ext] = fileparts(files{m});
+                switch ext
+                    case '.ArdyMotor'
+                        data = ArdyMotorFileRead(files{m});
+                    case '.MotoTrak'
+                        data = MotoTrakFileRead(files{m});
+                        data = MotoTrak_to_ArdyMotor(data);
+                        data.rat = data.subject;
+                end
+                %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+            catch err                                                               %If an error occurs...
+                warning(['ERROR READING: ' files{m}]);                              %Show which file had a read problem...
+                warning(err.message);                                               %Show the actual error message.
+                continue
+            end
+%             data = ArdyMotorFileRead(files{m});
             for t = 1:knob_data.session_length(m)
-                TempMatrix(Counter(i),:) = data.trial(t).signal';
+                TempMatrix(Counter(i),:) = data.trial(t).signal(1:500,1)';
                 Max_Distance(Counter(i),i) = max(knob_data.trial(t,:,m));
                 a = find((data.trial(t).sample_times < 1000*data.trial(t).hitwin));
+                if exist('data.threshtype','var') == 0;
+                    data.threshtype = [];
+                end
                 if strcmpi(data.threshtype,'degrees (bidirectional)')               %If the threshold type is bidirectional knob-turning...
                     signal = abs(data.trial(t).signal(a) - ....
                         data.trial(t).signal(1));                                   %Subtract the starting degrees value from the trial signal.
@@ -147,19 +143,19 @@ for i = 1:Weeks
                     i = intersect(a,i+1)-1;                                         %Find all peaks that are in the hit window.
                     signal = length(i);                                             %Set the trial signal to the number of wheel spins.
                 elseif strcmpi(data.threshtype, 'degrees (total)')
-                    signal = data.trial(t).signal(a);
+                    signal = data.trial(t).signal(a);               
                 else
                     signal = data.trial(t).signal(a) - data.trial(t).signal(1);    %Grab the raw signal for the trial.
                 end
                 smooth_trial_signal = boxsmooth(signal);
                 Peak_Velocity(Counter(i),i) = max(boxsmooth(diff(smooth_trial_signal)))*100;
-                if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
-                    hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
-                        knob_data.thresh(t,:,m),1);
-                    Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
-                else
-                    Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
-                end
+%                 if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
+%                     hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
+%                         knob_data.thresh(t,:,m),1);
+%                     Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
+%                 else
+%                     Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
+%                 end
                 Counter(i) = Counter(i) + 1
             end
             for j = 1:500;
@@ -192,9 +188,25 @@ for i = 1:Weeks
         figure; clf;
         TempMatrix = [];
         for m = (Session_Count(i)+1):(Session_Count(i+1));
-            data = ArdyMotorFileRead(files{m});
+            try                                                                     %Try to read in the data file...
+                [~,filename,ext] = fileparts(files{m});
+                switch ext
+                    case '.ArdyMotor'
+                        data = ArdyMotorFileRead(files{m});
+                    case '.MotoTrak'
+                        data = MotoTrakFileRead(files{m});
+                        data = MotoTrak_to_ArdyMotor(data);
+                        data.rat = data.subject;
+                end
+                %         temp = ArdyMotorFileRead(files{f});                                 %Read in the data from each file.
+            catch err                                                               %If an error occurs...
+                warning(['ERROR READING: ' files{m}]);                              %Show which file had a read problem...
+                warning(err.message);                                               %Show the actual error message.
+                continue
+            end
+            %             data = ArdyMotorFileRead(files{m});
             for t = 1:knob_data.session_length(m);
-                TempMatrix(Counter(i),:) = data.trial(t).signal';
+                TempMatrix(Counter(i),:) = data.trial(t).signal(1:500,1)';
                 Max_Distance(Counter(i),i) = max(knob_data.trial(t,:,m));
                 a = find((data.trial(t).sample_times < 1000*data.trial(t).hitwin));
                 if strcmpi(data.threshtype,'degrees (bidirectional)')               %If the threshold type is bidirectional knob-turning...
@@ -214,13 +226,13 @@ for i = 1:Weeks
                 end
                 smooth_trial_signal = boxsmooth(signal);
                 Peak_Velocity(Counter(i),i) = max(boxsmooth(diff(smooth_trial_signal)))*100;
-                if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
-                    hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
-                        knob_data.thresh(t,:,m),1);
-                    Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
-                else
-                    Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
-                end
+%                 if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
+%                     hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
+%                         knob_data.thresh(t,:,m),1);
+%                     Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
+%                 else
+%                     Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
+%                 end
                 Counter(i) = Counter(i) + 1;
             end
             for j = 1:500;

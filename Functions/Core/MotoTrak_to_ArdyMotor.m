@@ -29,7 +29,8 @@ data.cal = double(data.cal)';                                               %Con
 data.booth = str2double(data.booth);                                        %Convert the booth number from a string to a value.
 
 init_index = strcmpi(data.parameters,'Initiation Threshold');               %Find the parameter index for the initiation threshold.
-thresh_index = strcmpi(data.parameters,'Hit Threshold');                    %Find the parameter index for the hit threshold.
+thresh_index = strcmpi(data.parameters,'Hit Threshold') | ...
+    strcmpi(data.parameters,'Lower bound force threshold');                 %Find the parameter index for the hit threshold.
 
 if isfield(data,'trial') && ~isempty(data.trial)                            %If there are any trials in the data structure...
     
@@ -48,11 +49,17 @@ if isfield(data,'trial') && ~isempty(data.trial)                            %If 
     data.position = data.trial(1).position;                                 %Copy the device position from the first trial to the header.
     
     for t = 1:length(data.trial)                                            %Step through each trial in the data structure.
-        data.trial(t).signal(1,:) = data.trial(t).signal(1,:)/1000;         %Convert the sample times to milliseconds.        
-        data.trial(t).signal(1,:) = data.trial(t).signal(1,:) - ...
-            data.trial(t).signal(1,1) - ...
-            1000*data.trial(t).pre_trial_duration;                          %Make the sample times relative to the trial initiation.
-        data.trial(t).sample_times = int16(data.trial(t).signal(1,:)');     %Copy the sample times to a field called "sample times".
+        times = data.trial(t).signal(1,:)/1000;                             %Convert the sample times to milliseconds.        
+        times = times - times(1);                                           %Make the sample times relative to the start of the snippet.
+        if any(diff(times') <= 0)                                           %If any of the sample times are non-increasing...
+            if t == 1                                                       %If this is the first trial...
+                sample_period = 10;                                         %Set the sample period to 10 milliseconds.                        
+            end
+            times = sample_period*(0:size(data.trial(t).signal,2)-1);       %Create sample times based on the previous average sample period.
+        end
+        times =  times - 1000*data.trial(t).pre_trial_duration;             %Make the sample times relative to the trial initiation.
+        sample_period = mean(diff(times));                                  %Save the average sample period for the next loop, if needed.                
+        data.trial(t).sample_times = int16(times');                         %Copy the sample times to a field called "sample times".
         data.trial(t).ir = data.trial(t).signal(3,:)';                      %Copy the IR signal to a field called "ir".
         data.trial(t).signal = data.trial(t).signal(2,:)';                 	%Trim the "signal" field to just those values coming from the primary device.
         data.trial(t).init = data.trial(t).parameters(init_index);          %Copy the the initiation threshold to a field called "init".

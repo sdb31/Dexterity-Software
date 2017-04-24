@@ -86,7 +86,11 @@ if version < 0                                                              %If 
         if isempty(trial);                                                    %If no trial number was read or that's the end of the file...
             starttime = fread(fid,1,'float64');
             if isempty(starttime)
-                starttime = temp.datenum;
+                try
+                    starttime = temp.datenum;
+                catch err
+                    starttime = temp;
+                end
             end
             continue                                                        %Skip execution of the rest of the loop.
         end
