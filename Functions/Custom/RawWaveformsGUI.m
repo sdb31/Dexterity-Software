@@ -156,7 +156,7 @@ for i = 1:Weeks
                 else
                     Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
                 end
-                Counter(i) = Counter(i) + 1
+                Counter(i) = Counter(i) + 1;
             end
             for j = 1:500;
                 Mean_Plot(m,j) = nanmean(knob_data.trial(:,j,m));
@@ -178,10 +178,13 @@ for i = 1:Weeks
         hold on;
         boxplot(Latency_To_Hit(:,i), 'orientation', 'horizontal', 'widths', 30, 'positions', -20, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
         hold off;
-%         YTickLabels = -40:40:round(1.1*max(Max_Distance(:,i)));
-%         set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
-%             'YTickLabels', YTickLabels);
-%         ylabel('Angle (degrees)', 'Fontsize', 10);
+        YTickLabels = -40:5:round(max(Max_Distance(:,i))/5)*5;
+        %                 set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
+        %                     'YTickLabels', YTickLabels);
+        set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))],...
+            'YTick',-40:5:round(max(Max_Distance(:,i))/5)*5,'YTickLabels', YTickLabels,...
+            'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'});
+        %         ylabel('Angle (degrees)', 'Fontsize', 10);
         box off;
     elseif sum(Sessions(i)) > 1;
         
@@ -243,7 +246,7 @@ for i = 1:Weeks
                 Median_Plot(m,j) = nanmedian(knob_data.trial(:,j,m));
             end
         end
-        TempMatrix = datasample(TempMatrix,Min_Random_Trials,'Replace', false);
+        TempMatrix = datasample(TempMatrqix,Min_Random_Trials,'Replace', false);
         hold on;
         for t = 1:Min_Random_Trials;
             patchline(1:500, TempMatrix(t,:), 'edgecolor', 'b', 'linewidth', .5, 'edgealpha', 0.05);
@@ -258,11 +261,12 @@ for i = 1:Weeks
         hold on;
         boxplot(Latency_To_Hit(:,i), 'orientation', 'horizontal', 'widths', 30, 'positions', -20, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
         hold off;
-        YTickLabels = -40:40:round(1.1*max(Max_Distance(:,i)));
-                set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
-                    'YTickLabels', YTickLabels);
-%         set(gca, 'TickDir', 'out', 'YLim', [round(1.1*min(Max_Distance(:,i)))-20 round(1.1*max(Max_Distance(:,i)))],...
-%             'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'});
+        YTickLabels = -40:5:round(max(Max_Distance(:,i))/5)*5;
+        %                 set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
+        %                     'YTickLabels', YTickLabels);
+        set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))],...
+            'YTick',-40:5:round(max(Max_Distance(:,i))/5)*5,'YTickLabels', YTickLabels,...
+            'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'});
         %         ylabel('Angle (degrees)', 'Fontsize', 10);
         box off;
     end
@@ -282,7 +286,7 @@ switch Waveform_Type
         title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
         ylabel('Angle (degrees)', 'Fontsize', 10);
 end
-legend(Titles, 0);
+legend(Titles);
 box off;
 set(gca, 'TickDir', 'out');
 
