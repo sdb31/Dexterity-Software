@@ -149,13 +149,13 @@ for i = 1:Weeks
                 end
                 smooth_trial_signal = boxsmooth(signal);
                 Peak_Velocity(Counter(i),i) = max(boxsmooth(diff(smooth_trial_signal)))*100;
-%                 if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
-%                     hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
-%                         knob_data.thresh(t,:,m),1);
-%                     Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
-%                 else
-%                     Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
-%                 end
+                if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
+                    hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
+                        knob_data.thresh(t,:,m),1);
+                    Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
+                else
+                    Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
+                end
                 Counter(i) = Counter(i) + 1
             end
             for j = 1:500;
@@ -178,10 +178,10 @@ for i = 1:Weeks
         hold on;
         boxplot(Latency_To_Hit(:,i), 'orientation', 'horizontal', 'widths', 30, 'positions', -20, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
         hold off;
-        YTickLabels = -40:40:round(1.1*max(Max_Distance(:,i)));
-        set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
-            'YTickLabels', YTickLabels);
-        ylabel('Angle (degrees)', 'Fontsize', 10);
+%         YTickLabels = -40:40:round(1.1*max(Max_Distance(:,i)));
+%         set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
+%             'YTickLabels', YTickLabels);
+%         ylabel('Angle (degrees)', 'Fontsize', 10);
         box off;
     elseif sum(Sessions(i)) > 1;
         
@@ -209,6 +209,9 @@ for i = 1:Weeks
                 TempMatrix(Counter(i),:) = data.trial(t).signal(1:500,1)';
                 Max_Distance(Counter(i),i) = max(knob_data.trial(t,:,m));
                 a = find((data.trial(t).sample_times < 1000*data.trial(t).hitwin));
+                if exist('data.threshtype','var') == 0;
+                    data.threshtype = [];
+                end
                 if strcmpi(data.threshtype,'degrees (bidirectional)')               %If the threshold type is bidirectional knob-turning...
                     signal = abs(data.trial(t).signal(a) - ....
                         data.trial(t).signal(1));                                   %Subtract the starting degrees value from the trial signal.
@@ -226,13 +229,13 @@ for i = 1:Weeks
                 end
                 smooth_trial_signal = boxsmooth(signal);
                 Peak_Velocity(Counter(i),i) = max(boxsmooth(diff(smooth_trial_signal)))*100;
-%                 if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
-%                     hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
-%                         knob_data.thresh(t,:,m),1);
-%                     Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
-%                 else
-%                     Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
-%                 end
+                if (knob_data.outcome(t,:,m) == 72)                                   %If it was a hit
+                    hit_time = find(knob_data.trial(t,:,m) >= ...                    %Calculate the hit time
+                        knob_data.thresh(t,:,m),1);
+                    Latency_To_Hit(Counter(i),i) = hit_time;                       %hit time is then latency to hit
+                else
+                    Latency_To_Hit(Counter(i),i) = NaN;                            %If trial resulted in a miss, then set latency to hit to NaN
+                end
                 Counter(i) = Counter(i) + 1;
             end
             for j = 1:500;
@@ -256,9 +259,11 @@ for i = 1:Weeks
         boxplot(Latency_To_Hit(:,i), 'orientation', 'horizontal', 'widths', 30, 'positions', -20, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
         hold off;
         YTickLabels = -40:40:round(1.1*max(Max_Distance(:,i)));
-        set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
-            'YTickLabels', YTickLabels);
-        ylabel('Angle (degrees)', 'Fontsize', 10);
+                set(gca, 'TickDir', 'out', 'YLim', [-40 round(1.1*max(Max_Distance(:,i)))], 'YTick', -40:40:round(1.1*max(Max_Distance(:,i))), 'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'},...
+                    'YTickLabels', YTickLabels);
+%         set(gca, 'TickDir', 'out', 'YLim', [round(1.1*min(Max_Distance(:,i)))-20 round(1.1*max(Max_Distance(:,i)))],...
+%             'XLim', [0 350], 'XTick', 0:50:350, 'XTickLabels', {'0', '50', '100', '150', '200', '250', '300', '350'});
+        %         ylabel('Angle (degrees)', 'Fontsize', 10);
         box off;
     end
 end
