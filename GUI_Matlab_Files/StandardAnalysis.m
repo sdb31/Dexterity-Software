@@ -263,7 +263,7 @@ if ~isempty(Excel_Check) == 0;
             for field = {'rat','device','stage'}                               %Step through the fields we want to save from the data file...
                 data(s).(field{1}) = temp.(field{1});                           %Grab each field from the data file and save it.
             end
-            if isfield(temp,'trial') == 0;
+            if isfield(temp,'trial') == 0 || isempty(temp.trial) == 1;
                 KeepFile = questdlg(['There is no data in this file: ' files{f}(a+1:end)],...
                     'Keep or Discard File',...
                     'Keep', 'Discard', 'Discard');
@@ -1162,8 +1162,8 @@ end
 %% This function is called when the user selects a plot type in the pop-up menu.
 function Set_Plot_Type(~,~,obj,data)
 if obj(2) ~= 0 ;
-    i = strcmpi(get(obj,'fontweight'),'bold');                                  %Find the pushbutton with the bold fontweight.
-    Plot_Timeline(obj(i),[],obj,[],data);                                            %Call the subfunction to plot the data by the appropriate timeline.
+%     i = strcmpi(get(obj,'fontweight'),'bold');                                  %Find the pushbutton with the bold fontweight.
+    Plot_Timeline(obj(1),[],obj,[],data);                                            %Call the subfunction to plot the data by the appropriate timeline.
 else
     Plot_Timeline(obj(1),[],obj,[],data);                                            %Call the subfunction to plot the data by the appropriate timeline.
 end

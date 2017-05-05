@@ -3,14 +3,14 @@ function RawWaveformsGUI(vargarin)
     'Select Animal(s) Data', ...
     'multiselect','on');
 cd(path);
-if ischar(files)                                                        %If only one file was selected...
+if ischar(files)                                                      %If only one file was selected...
     files = {files};                                                    %Convert the string to a cell array.
 end
 for i = 1:length(files)
     D = dir(files{i});
     Bytes(i) = D.bytes;
 end
-[row, col] = find(Bytes>25000);
+[row, col] = find(Bytes>500);
 files = files(col);
 knob_data.trial_length = 500;
 knob_data.num_sessions = length(files);
