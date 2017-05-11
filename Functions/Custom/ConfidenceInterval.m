@@ -87,43 +87,73 @@ handles.(animal).post.session_select = 1;
 PlotTrial(handles, 'pre');
 
 function PlotTrial(handles, preorpost)
-
+Interval_Question = questdlg('Do you want to plot SEM or CI?',...
+    'SEM or CI',...
+    'SEM','CI','CI');
 % cla(handles.(preorpost).trial_axes);
 figure; clf;
 
 trial_start = 100;
 trial_end = 300;
 
-s_pre = handles.(handles.animals).pre.session_select;
+% s_pre = handles.(handles.animals).pre.session_select;
 % s_post = handles.(animal).post.session_select;
 
 
-handles.pre.max_signal = max(handles.(handles.animals).pre.trialdata.mean_plot(s_pre,:));
+% handles.pre.max_signal = max(handles.(handles.animals).pre.trialdata.mean_plot(:,:));
 % handles.post.max_signal = max(handles.(animal).post.trialdata.mean_plot(s_post,:));
 % max_signal = max(handles.pre.max_signal, handles.post.max_signal);
-max_signal = max(handles.pre.max_signal);
-
-y_max = 1.2*max_signal;
+% max_signal = max(handles.pre.max_signal);
 
 
-y_min = -(0.025*y_max);
-s = handles.(handles.animals).(preorpost).session_select;
+
 
 %Plot confidence interval fill
 % fill([1:500,500:-1:1], ... 
 %     [handles.(handles.cur_animal).(preorpost).trialdata.upper(s,:), ... 
 %     fliplr(handles.(handles.cur_animal).(preorpost).trialdata.lower(s,:))], ... 
 %     [0 0.5 0], 'parent', handles.(preorpost).trial_axes);
-fill([1:500,500:-1:1], ... 
-    [handles.(handles.animals).(preorpost).trialdata.upper(s,:), ... 
-    fliplr(handles.(handles.animals).(preorpost).trialdata.lower(s,:))], ... 
-    [0 0.5 0]);
+if size(handles.(handles.animals).(preorpost).trialdata.upper,1) > 1
+   handles.(handles.animals).(preorpost).trialdata.upper = nanmean(handles.(handles.animals).(preorpost).trialdata.upper);
+   handles.(handles.animals).(preorpost).trialdata.lower = nanmean(handles.(handles.animals).(preorpost).trialdata.lower);
+   handles.(handles.animals).(preorpost).trialdata.mean_plot = nanmean(handles.(handles.animals).(preorpost).trialdata.mean_plot);
+   handles.(handles.animals).(preorpost).trialdata.SD = nanmean(handles.(handles.animals).(preorpost).trialdata.SD);
+end
+handles.pre.max_signal = max(handles.(handles.animals).pre.trialdata.mean_plot(:,:));
+max_signal = max(handles.(handles.animals).(preorpost).trialdata.mean_plot);
+y_max = 1.2*max_signal;
+
+
+y_min = -(0.025*y_max);
+% s = handles.(handles.animals).(preorpost).session_select;
+Number_of_Trials = size(handles.(handles.animals).(preorpost).trialdata.trial,1);
+for j = 1:500;
+   handles.(handles.animals).(preorpost).trialdata.SE(1,j) = handles.(handles.animals).(preorpost).trialdata.SD(1,j)./sqrt(Number_of_Trials);
+end
+
+if strcmpi(Interval_Question,'SEM') == 1;
+    SEM_Upper = handles.(handles.animals).(preorpost).trialdata.mean_plot + handles.(handles.animals).(preorpost).trialdata.SE;
+    SEM_Lower = handles.(handles.animals).(preorpost).trialdata.mean_plot - handles.(handles.animals).(preorpost).trialdata.SE;
+    fill([1:500,500:-1:1], ...
+        [SEM_Upper, ...
+        fliplr(SEM_Lower)], ...
+        [0 0.5 0]);
+    title([handles.animals ': Mean Trial with SEM'], ...
+    'FontSize', 12, 'FontWeight', 'bold');
+else
+    fill([1:500,500:-1:1], ...
+        [handles.(handles.animals).(preorpost).trialdata.upper, ...
+        fliplr(handles.(handles.animals).(preorpost).trialdata.lower)], ...
+        [0 0.5 0]);
+    title([handles.animals ': Mean Trial with 95% Confidence Interval'], ...
+    'FontSize', 12, 'FontWeight', 'bold');
+end
 hold on;
 
 %plot mean data line
 % line((1:500),handles.(handles.cur_animal).(preorpost).trialdata.mean_plot(s,:), ... 
 %     'Color', 'k', 'linewidth', 2, 'parent', handles.(preorpost).trial_axes);
-line((1:500),handles.(handles.animals).(preorpost).trialdata.mean_plot(s,:), ... 
+line((1:500),handles.(handles.animals).(preorpost).trialdata.mean_plot, ... 
     'Color', 'k', 'linewidth', 2);
 hold on;
 
@@ -176,8 +206,7 @@ text(trial_end - trial_start,0.95*y_max, ...
 %     title_label = 'Post';
 % end
 
-title([handles.animals ': Mean Trial with 95% Confidence Interval'], ...
-    'FontSize', 12, 'FontWeight', 'bold');
+
 ylabel('Degrees', 'FontWeight', 'bold', ...
     'FontSize', 12);
 xlabel('Time (10ms)', 'FontWeight', 'bold');
@@ -519,6 +548,7 @@ end
 for s = 1:knob_data.num_sessions
     for j=1:500
         knob_data.mean_plot(s,j) = nanmean(knob_data.trial(:,j,s));
+        knob_data.SD(s,j) = nanstd(knob_data.trial(:,j,s));
 %         interval(s,j) = nanstd(knob_data.trial(:,j,s))/(sqrt(knob_data.session_length(s)));
         knob_data.interval(s,j) = simple_ci(knob_data.trial(:,j,s));
         knob_data.upper(s,j) = knob_data.mean_plot(s,j) + knob_data.interval(s,j);
