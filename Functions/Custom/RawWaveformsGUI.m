@@ -274,17 +274,40 @@ end
 
 
 %% Average Waveforms Plots
+ThreeDee = questdlg('Do you want to plot Mean or Median Waveform in 3D?',...
+    '3D Option',...
+    'Yes','No','No');
 FF = Weeks + 2;
 figure; clf;
 switch Waveform_Type
     case 'Median'
-        plot(1:500, Overall_Median(:,:), 'Linewidth', 2);
-        title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-        ylabel('Angle (degrees)', 'Fontsize', 10);
+        if strcmpi(ThreeDee,'Yes') == 1;
+            for d = 1:size(Overall_Median,1)
+                hold on;
+                plot3( 1:500, 0.5*d*ones(1,500),Overall_Median(d,:),'Linewidth',2)
+                hold off;
+            end
+            grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
+            title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+        else
+            plot(1:500, Overall_Median(:,:), 'Linewidth', 2);
+            title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+            ylabel('Angle (degrees)', 'Fontsize', 10);
+        end
     case 'Mean'
-        plot(1:500, Overall_Mean(:,:), 'Linewidth', 2);
-        title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-        ylabel('Angle (degrees)', 'Fontsize', 10);
+        if strcmpi(ThreeDee,'Yes') == 1;
+            for d = 1:size(Overall_Mean,1)
+                hold on;
+                plot3( 1:500, 0.5*d*ones(1,500),Overall_Mean(d,:),'Linewidth',2)
+                hold off;
+            end
+            grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
+            title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+        else
+            plot(1:500, Overall_Mean(:,:), 'Linewidth', 2);
+            title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+            ylabel('Angle (degrees)', 'Fontsize', 10);
+        end
 end
 legend(Titles);
 box off;
@@ -296,6 +319,20 @@ set(gca, 'TickDir', 'out', 'XTickLabels', Titles);
 box off;
 title('Peak Velocity', 'Fontweight', 'normal', 'Fontsize', 10);
 ylabel('Velocity (deg/s)', 'Fontsize', 10);
+
+figure; clf;
+boxplot(Max_Distance, 'symbol', 'k.', 'outliersize', 3, 'colors', 'k');
+set(gca, 'TickDir', 'out', 'XTickLabels', Titles);
+box off;
+title('Signal Peak', 'Fontweight', 'normal', 'Fontsize', 10);
+ylabel('Dependent Variable', 'Fontsize', 10);
+
+figure; clf;
+boxplot(Latency_To_Hit, 'symbol', 'k.', 'outliersize', 3, 'colors', 'k');
+set(gca, 'TickDir', 'out', 'XTickLabels', Titles);
+box off;
+title('Latency to HIT', 'Fontweight', 'normal', 'Fontsize', 10);
+ylabel('Latency (hs)', 'Fontsize', 10);
 end
 
 function [pks, sig] = Knob_Peak_Finder(signal)
