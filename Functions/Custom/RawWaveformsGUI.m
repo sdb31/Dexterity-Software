@@ -2,7 +2,11 @@ function RawWaveformsGUI(vargarin)
 [files, path] = uigetfile({'*.MotoTrak;*.ArdyMotor'},...
     'Select Animal(s) Data', ...
     'multiselect','on');
-cd(path);
+try 
+    cd(path);
+catch err
+    return
+end
 if ischar(files)                                                      %If only one file was selected...
     files = {files};                                                    %Convert the string to a cell array.
 end
@@ -161,6 +165,7 @@ for i = 1:Weeks
             for j = 1:500;
                 Mean_Plot(m,j) = nanmean(knob_data.trial(:,j,m));
                 Median_Plot(m,j) = nanmedian(knob_data.trial(:,j,m));
+                SD_Plot(m,j) = nanstd(knob_data.trial(:,j,m));
             end
         end
         TempMatrix = datasample(TempMatrix,Min_Random_Trials,'Replace', false);
@@ -171,6 +176,7 @@ for i = 1:Weeks
         hold off;
         Overall_Mean(i,:) = Mean_Plot((Session_Count(i)+1):(Session_Count(i+1)),:);
         Overall_Median(i,:) = Median_Plot((Session_Count(i)+1):(Session_Count(i+1)),:);
+        Overall_SD(i,:) = SD_Plot((Session_Count(i)+1):(Session_Count(i+1)),:);
         title(Titles(i), 'Fontsize', 10, 'Fontweight', 'normal');
         hold on;
         boxplot(Max_Distance(:,i), 'positions', 40, 'widths', 50, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
@@ -244,6 +250,7 @@ for i = 1:Weeks
             for j = 1:500;
                 Mean_Plot(m,j) = nanmean(knob_data.trial(:,j,m));
                 Median_Plot(m,j) = nanmedian(knob_data.trial(:,j,m));
+                SD_Plot(m,j) = nanstd(knob_data.trial(:,j,m));
             end
         end
         TempMatrix = datasample(TempMatrix,Min_Random_Trials,'Replace', false);
@@ -254,6 +261,7 @@ for i = 1:Weeks
         hold off;
         Overall_Mean(i,:) = nanmean(Mean_Plot((Session_Count(i)+1):(Session_Count(i+1)),:));
         Overall_Median(i,:) = nanmedian(Median_Plot((Session_Count(i)+1):(Session_Count(i+1)),:));
+        Overall_SD(i,:) = nanmean(SD_Plot((Session_Count(i)+1):(Session_Count(i+1)),:));
         title(Titles(i), 'Fontsize', 10, 'Fontweight', 'normal');
         hold on;
         boxplot(Max_Distance(:,i), 'positions', 40, 'widths', 50, 'outliersize', 6, 'colors', 'b', 'symbol', 'b.');
@@ -277,39 +285,86 @@ end
 ThreeDee = questdlg('Do you want to plot Mean or Median Waveform in 3D?',...
     '3D Option',...
     'Yes','No','No');
+Shading_Option = questdlg('Do you want to include error shading?',...
+    'Error Shading',...
+    'SEM','None','None');
 FF = Weeks + 2;
 figure; clf;
 switch Waveform_Type
     case 'Median'
-        if strcmpi(ThreeDee,'Yes') == 1;
-            for d = 1:size(Overall_Median,1)
+        for d = 1:size(Overall_Median,1)
+            if strcmpi(ThreeDee,'Yes') == 1;
                 hold on;
-                plot3( 1:500, 0.5*d*ones(1,500),Overall_Median(d,:),'Linewidth',2)
+                if strcmpi(Shading_Option,'SEM') == 1;
+                    SEM_Upper = Overall_Median(d,:) + Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    SEM_Lower = Overall_Median(d,:) - Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    fill3([1:500,500:-1:1], ...
+                        0.5*d*ones(1,1000),...
+                        [SEM_Upper, ...
+                        fliplr(SEM_Lower)], ...
+                        [0 0.5 0]);
+                end
+                h(d) = plot3( 1:500, 0.5*d*ones(1,500),Overall_Median(d,:),'Linewidth',2)
                 hold off;
+                grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
+                title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+                legend(h, Titles);
+            else
+                hold on;
+                if strcmpi(Shading_Option,'SEM') == 1;
+                    SEM_Upper = Overall_Median(d,:) + Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    SEM_Lower = Overall_Median(d,:) - Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    fill([1:500,500:-1:1], ...
+                        [SEM_Upper, ...
+                        fliplr(SEM_Lower)], ...
+                        [0 0.5 0]);
+                end
+                h(d) = plot(1:500, Overall_Median(d,:), 'Linewidth', 2);
+                hold off;
+                title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+                ylabel('Angle (degrees)', 'Fontsize', 10);
+                legend(h, Titles);
             end
-            grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
-            title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-        else
-            plot(1:500, Overall_Median(:,:), 'Linewidth', 2);
-            title('Median Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-            ylabel('Angle (degrees)', 'Fontsize', 10);
         end
     case 'Mean'
-        if strcmpi(ThreeDee,'Yes') == 1;
-            for d = 1:size(Overall_Mean,1)
+        for d = 1:size(Overall_Mean,1)
+            if strcmpi(ThreeDee,'Yes') == 1;
                 hold on;
-                plot3( 1:500, 0.5*d*ones(1,500),Overall_Mean(d,:),'Linewidth',2)
+                if strcmpi(Shading_Option,'SEM') == 1;
+                    SEM_Upper = Overall_Mean(d,:) + Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    SEM_Lower = Overall_Mean(d,:) - Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    fill3([1:500,500:-1:1], ...
+                        0.5*d*ones(1,1000),...
+                        [SEM_Upper, ...
+                        fliplr(SEM_Lower)], ...
+                        [0 0.5 0]);
+                end
+                h(d) = plot3( 1:500, 0.5*d*ones(1,500),Overall_Mean(d,:),'Linewidth',2);
                 hold off;
+                grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
+                title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+                legend(h,Titles);
+            else
+                hold on;
+                if strcmpi(Shading_Option,'SEM') == 1;
+                    %                     legend(Titles);
+                    SEM_Upper = Overall_Mean(d,:) + Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    SEM_Lower = Overall_Mean(d,:) - Overall_SD(d,:)/sqrt(Min_Random_Trials);
+                    fill([1:500,500:-1:1], ...
+                        [SEM_Upper, ...
+                        fliplr(SEM_Lower)], ...
+                        [0 0.5 0]);
+                end
+                h(d) = plot(1:500, Overall_Mean(d,:), 'Linewidth', 2);
+                hold off
+                title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
+                ylabel('Angle (degrees)', 'Fontsize', 10);
+                legend(h,Titles);
             end
-            grid on; xlabel('Time (hs)'); zlabel('Dependent Variable');
-            title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-        else
-            plot(1:500, Overall_Mean(:,:), 'Linewidth', 2);
-            title('Mean Waveforms', 'Fontweight', 'Normal', 'Fontsize', 10);
-            ylabel('Angle (degrees)', 'Fontsize', 10);
         end
+
 end
-legend(Titles);
+% legend(Titles);
 box off;
 set(gca, 'TickDir', 'out');
 
