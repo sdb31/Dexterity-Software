@@ -391,6 +391,7 @@ switch Annotate
                         strcmpi({data.device},devices{d}));                             %Find all the session for this rat on this device.
                     plotdata(r).times = [data(i).timestamp];                            %Grab the timestamps for all sessions.
                     plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
+                    plotdata(r).peak_sd = nan(1,length(i));
                     plotdata(r).hitrate = nan(1,length(i));                             %Pre-allocate a matrix to hold the hit rate for each session.
                     plotdata(r).numtrials = nan(1,length(i));                           %Pre-allocate a matrix to hold the number of trials for each session.
                     plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
@@ -407,6 +408,7 @@ switch Annotate
                     plotdata(r).latency = nan(1,length(i));
                     for s = 1:length(i)                                                 %Step through each session.
                         plotdata(r).peak(s) = mean(data(i(s)).peak);                    %Save the mean signal peak for each session.
+                        plotdata(r).peak_sd(s) = nanstd(data(i(s)).peak);
                         plotdata(r).impulse(s) = mean(data(i(s)).impulse);              %Save the mean signal impulse peak for each session.
                         plotdata(r).hitrate(s) = mean(data(i(s)).outcome == 'H');       %Save the hit rate for each session.
                         plotdata(r).numtrials(s) = length(data(i(s)).outcome);          %Save the total number of trials for each session.
@@ -585,6 +587,7 @@ switch Annotate
                             strcmpi({data.device},devices{d}));                             %Find all the session for this rat on this device.
                         plotdata(r).times = [data(i).timestamp];                            %Grab the timestamps for all sessions.
                         plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
+                        plotdata(r).peak_sd = nan(1,length(i));
                         plotdata(r).hitrate = nan(1,length(i));                             %Pre-allocate a matrix to hold the hit rate for each session.
                         plotdata(r).numtrials = nan(1,length(i));                           %Pre-allocate a matrix to hold the number of trials for each session.
                         plotdata(r).peak = nan(1,length(i));                                %Pre-allocate a matrix to hold the average peak signal for each session.
@@ -601,6 +604,7 @@ switch Annotate
                         plotdata(r).latency = nan(1,length(i));
                         for s = 1:length(i)                                                 %Step through each session.
                             plotdata(r).peak(s) = mean(data(i(s)).peak);                    %Save the mean signal peak for each session.
+                            plotdata(r).peak_sd(s) = nanstd(data(i(s)).peak);
                             plotdata(r).impulse(s) = mean(data(i(s)).impulse);              %Save the mean signal impulse peak for each session.
                             plotdata(r).hitrate(s) = mean(data(i(s)).outcome == 'H');       %Save the hit rate for each session.
                             plotdata(r).numtrials(s) = length(data(i(s)).outcome);          %Save the total number of trials for each session.
@@ -1327,7 +1331,7 @@ else                                                                        %Oth
         'All Variables','Yes','No','No');
     if any(strcmpi('Yes',all_variables))
         for r = 1:length(plotdata)
-            alphabet = ['ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+            alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             %             t = vertcat(plotdata(r).x);
             %             t = unique(t,'rows');
             %             t = cellstr(datestr(t(:,1)));
