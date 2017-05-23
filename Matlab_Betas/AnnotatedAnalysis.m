@@ -1140,7 +1140,8 @@ elseif strcmp(str,'Both NTA and NNTA')
     for p = 1:length(TimelineData(index_selected).Groups)
         NormTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormTargetedAttempts);
         NormNonTargetedAttempts(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttempts);
-        StandardDev(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttemptsStd);
+        StandardDev_NNTA(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormNonTargetedAttemptsStd);
+        StandardDev_NTA(:,p) = cell2mat(TimelineData(index_selected).Groups(p).data.MeanNormTargetedAttemptsStd);
         GroupLegend(p) = TimelineData(index_selected).Groups(p).name;
         hold on;
         gcf; %plot(Latency(p,:), 'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
@@ -1148,11 +1149,11 @@ elseif strcmp(str,'Both NTA and NNTA')
             case 'Line'
                 switch Grayscale_string
                     case 'Color'
-                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
-                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', colors(p), 'Marker', 's','MarkerFaceColor', colors(p));
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev_NNTA(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', colors(p), 'Marker', 'o','MarkerFaceColor', colors(p));
+                        errorbar(NormTargetedAttempts(:,p), StandardDev_NTA(:,p)./sqrt(length(NormTargetedAttempts)),'Color', colors(p), 'Marker', 's','MarkerFaceColor', colors(p));
                     case 'Gray'
-                        errorbar(NormNonTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
-                        errorbar(NormTargetedAttempts(:,p), StandardDev(:,p)./sqrt(length(NormTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                        errorbar(NormNonTargetedAttempts(:,p), StandardDev_NNTA(:,p)./sqrt(length(NormNonTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
+                        errorbar(NormTargetedAttempts(:,p), StandardDev_NTA(:,p)./sqrt(length(NormTargetedAttempts)),'Color', 'k', 'Marker', markerstyles{p},'MarkerFaceColor', 'k', 'Linestyle', linestyles{p});
                 end
         end
         hold off;
@@ -1191,7 +1192,7 @@ elseif strcmp(str,'Both NTA and NNTA')
             %                     end
             %                     hold off;
             %             end
-            msgbox('Not yet working yet!')
+            msgbox('Not yet working!')
             return;
     end
     YMax = 1.4*max(max([NormNonTargetedAttempts NormTargetedAttempts])); 
@@ -1285,9 +1286,9 @@ else                                                                        %Oth
         xlswrite(filename, {'Experiment Name:'},d,'A1');
         xlswrite(filename, TimelineData(index_selected).ExpName,d,'B1');
         xlswrite(filename,{'Groups:'},d,'A2');
-        xlswrite(filename,GroupNames,d,'B2');
+        xlswrite(filename,TimelineData(index_selected).Groups.name(d),d,'B2');
         xlswrite(filename,{'Group Name:'},d,'A4')
-        xlswrite(filename,GroupNames(d),d,'B4');
+        xlswrite(filename,TimelineData(index_selected).Groups.name(d),d,'B4');
         xlswrite(filename,TimelineData(index_selected).Groups(d).Subjects,d,'A5');
         xlswrite(filename,GroupInfo(d).data',d,'A6');
     end
