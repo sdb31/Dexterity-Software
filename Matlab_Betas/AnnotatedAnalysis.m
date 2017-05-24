@@ -167,7 +167,7 @@ for d = 1:length(devices)                                                   %Ste
     obj(4) = uicontrol(fig,'style','radiobutton','string','Bar Graph',...
         'units','centimeters','position',pos,'fontsize',.8*fontsize);
     pos = [60*sp2+(w-6*sp2)/6, .95*sp1, (w-6*sp2)/6, .9*ui_h]; 
-    obj(5) = uicontrol(fig,'style','pushbutton','string','Add Sig Stars',...
+    obj(5) = uicontrol(fig,'style','pushbutton','string','ANOVA',...
         'units','centimeters','position',pos,'fontsize',.8*fontsize);
     pos = [5*sp2, .95*sp1, (w-6*sp2)/6, .9*ui_h]; 
     obj(6) = uicontrol(fig,'style','radiobutton','string','Grayscale',...
@@ -184,7 +184,7 @@ for d = 1:length(devices)                                                   %Ste
     set(obj(2),'callback',{@Export_Data,ax,obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Plotvalue,obj(3),Grayscale_string});                           %Set the callback for the export button.
     set(obj(3),'callback',{@Linegraph,obj(4),obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Grayscale_string},'Value',1);
     set(obj(4),'callback',{@Bargraph,obj(3),obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Grayscale_string});
-    set(obj(5),'callback',{@Sigstars});
+    set(obj(5),'callback',{@RunStats,obj(1),data,Weeks,AnimalData,index_selected,EventData});
     set(obj(6),'callback',{@Grayscale,obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Plotvalue,Grayscale_string});
     set(fig,'userdata',data);                                           %Save the plot data to the figure's 'UserData' property.
     Plot_Timeline(obj(2),[],obj,[],data,Weeks,AnimalData,index_selected,xlabels,EventData,Plotvalue,Grayscale_string);                                        %Call the function to plot the session data in the figure.
@@ -194,19 +194,218 @@ end
 function Grayscale(~,~,obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Plotvalue,Grayscale_string)
 Plot_Timeline(obj(2),[],obj,[],data,Weeks,AnimalData,index_selected,xlabels,EventData,Plotvalue,Grayscale_string)
 
-function Sigstars(~,~)
-SigStarText = questdlg('How many sigstars would you like to use?',...
-    'Number of Sigstars',...
-    'One', 'Two', 'Three', 'Cancel');
-switch SigStarText
-    case 'One'
-        t = '*';
-    case 'Two'
-        t = '**';
-    case 'Three'
-        t = '***';
+function RunStats(~,~,Variable,data,Weeks,AnimalData,index_selected,EventData)
+% msgbox('Not working yet, sorry!','ANOVA')
+
+path = 'C:\AnalyzeGroup';
+% cd(path);
+Info = dir(path);
+name = {AnimalData.name};
+temp2 = find(cellfun(@isempty,name));
+if isempty(temp2) == 0;
+    AnimalData(temp2) = [];
 end
-gtext(t,'HorizontalAlignment', 'center');
+for q = 1:length(AnimalData);
+    Sessions(q,:) = str2num(AnimalData(q).sessions);
+    Names(q) = {AnimalData(q).name};
+end
+for l = 1:size(Sessions,1);
+    for m = 1:size(Sessions,2);
+        SessionCount(l,m+1) = sum(Sessions(l,1:m));
+    end
+end
+ExperimentNames = {Info.name};
+ExperimentNames = ExperimentNames(3:end);
+for i = 1:length(ExperimentNames);
+    %    Counter = 1;
+    testpath = {};
+    testpath = ['C:\AnalyzeGroup\' ExperimentNames{i} '\TreatmentGroups'] ;
+    Info_Groups = dir(testpath);
+    GroupNames = {Info_Groups.name};
+    GroupNames = GroupNames(3:end);
+    %    GUI_GroupNames{i} = GroupNames;
+    TimelineData(i).ExpName = ExperimentNames(i);
+    for k = 1:length(GroupNames)
+        subjectpath = {};
+        subjectpath = [testpath '\' GroupNames{k}];
+        Info_Subjects = dir(subjectpath);
+        SubjectNames = {Info_Subjects.name};
+        handles(k).SubjectNames = SubjectNames(3:end);
+        TimelineData(i).Groups(k).name = GroupNames(k);
+        for t = 1:length(handles(k).SubjectNames);
+            %           GUI_Subjects{i,Counter} = [handles(k).SubjectNames{t} ' (' GroupNames{k} ')'];
+            TimelineData(i).Groups(k).Subjects(t) = handles(k).SubjectNames(t);
+            if i == index_selected;
+                for l = 1:length(Names);
+                    temp(l) = strcmpi(Names(l),handles(k).SubjectNames{t});
+                end
+%                 Loc = find(char(Names) == handles(k).SubjectNames{t});
+                TimelineData(i).Groups(k).Sessions(t,:) = {AnimalData(temp).sessions};
+                TimelineData(i).Groups(k).SessionCount(t) = {SessionCount(temp,:)};
+            end
+            %           Counter = Counter + 1;
+        end
+    end
+end
+for g = 1:length(TimelineData(index_selected).Groups);
+    for s = 1:length(TimelineData(index_selected).Groups(g).Subjects);
+        for l = 1:length(Names);
+            temp(l) = strcmpi(Names(l),TimelineData(index_selected).Groups(g).Subjects{s});
+        end
+        %         Loc = Names == TimelineData(index_selected).Groups(g).Subjects{s};
+        temp_fieldnames = fieldnames(data(temp));
+        Vermicelli_Check = strfind(temp_fieldnames,'ratio');
+        if find([Vermicelli_Check{:}] == 1) == 1;
+            TimelineData(index_selected).Groups(g).data.TargetedAttempts(s) = {data(temp).mean_targeted};
+            TimelineData(index_selected).Groups(g).data.NonTargetedAttempts(s) = {data(temp).mean_nontargeted};
+            TimelineData(index_selected).Groups(g).data.Ratio(s) = {data(temp).ratio};
+        else
+            % for p = 1:size(temp_fieldnames,2);
+            %    TimelineData(index_selected).Groups(g).data.(temp_fieldnames(p))(s) = {data(temp).(temp_fieldnames{p})};
+            % end
+            TimelineData(index_selected).Groups(g).data.HitRate(s) = {data(temp).hitrate};
+            TimelineData(index_selected).Groups(g).data.TotalTrialCount(s) = {data(temp).numtrials};
+            TimelineData(index_selected).Groups(g).data.Peak(s) = {data(temp).peak};
+            TimelineData(index_selected).Groups(g).data.Peak_Velocity(s) = {data(temp).peak_velocity};
+            TimelineData(index_selected).Groups(g).data.Latency(s) = {data(temp).latency};
+        end
+    end
+%     Counter = 1;
+    for s = 1:length(TimelineData(index_selected).Groups(g).Subjects);
+        Sessions = cell2mat(TimelineData(index_selected).Groups(g).Sessions(s));
+        Sessions = strsplit(Sessions);
+        SessionCount = cell2mat(TimelineData(index_selected).Groups(g).SessionCount(s));
+        for l = 1:length(Sessions);
+            if find([Vermicelli_Check{:}] == 1) == 1;
+                temp_targetedattempts = cell2mat(TimelineData(index_selected).Groups(g).data.TargetedAttempts(s));
+                temp_nontargetedattempts = cell2mat(TimelineData(index_selected).Groups(g).data.NonTargetedAttempts(s));
+                temp_ratio = cell2mat(TimelineData(index_selected).Groups(g).data.Ratio(s));
+                % Means
+                temp_meantargetedattempts(s,l) = nanmean(temp_targetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meannontargetedattempts(s,l) = nanmean(temp_nontargetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanratio(s,l) = nanmean(temp_ratio((SessionCount(l)+1):SessionCount(l+1)));
+                % Standard Deviations
+                temp_targetedattemptsstd(s,l) = nanstd(temp_targetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_nontargetedattemptsstd(s,l) = nanstd(temp_nontargetedattempts((SessionCount(l)+1):SessionCount(l+1)));
+                temp_ratiostd(s,l) = nanstd(temp_ratio((SessionCount(l)+1):SessionCount(l+1)));                
+            else
+                temp_hitrate = cell2mat(TimelineData(index_selected).Groups(g).data.HitRate(s));
+                temp_TrialCount = cell2mat(TimelineData(index_selected).Groups(g).data.TotalTrialCount(s));
+                temp_Peak = cell2mat(TimelineData(index_selected).Groups(g).data.Peak(s));
+                temp_Peak_Velocity = cell2mat(TimelineData(index_selected).Groups(g).data.Peak_Velocity(s));
+                temp_Latency = cell2mat(TimelineData(index_selected).Groups(g).data.Latency(s));
+                temp_meanhitrate(s,l) = nanmean(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
+                temp_hitratestd(s,l) = nanstd(temp_hitrate((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanTrialCount(s,l) = nanmean(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meantrialcountstd(s,l) = nanstd(temp_TrialCount((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanPeak(s,l) = nanmean(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MedianPeak(s,l) = nanmedian(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_medianpeakstd(s,l) = nanstd(temp_Peak((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanPeakVelocity(s,l) = nanmean(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanpeakvelocitystd(s,l) = nanstd(temp_Peak_Velocity((SessionCount(l)+1):SessionCount(l+1)));
+                temp_MeanLatency(s,l) = nanmean(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
+                temp_meanlatencystd(s,l) = nanstd(temp_Latency((SessionCount(l)+1):SessionCount(l+1)));
+            end
+            
+        end
+        if find([Vermicelli_Check{:}] == 1) == 1;
+            temp_meannormtargetedattempts(s,:) = temp_meantargetedattempts(s,:)/temp_meantargetedattempts(s,1);            
+            temp_meannormnontargetedattempts(s,:) = temp_meannontargetedattempts(s,:)/temp_meannontargetedattempts(s,1);
+        end
+    end
+    if find([Vermicelli_Check{:}] == 1) == 1;
+        TimelineData(index_selected).Groups(g).data.PerAnimalTargetedAttempts = temp_meantargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNonTargetedAttempts = temp_meannontargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalRatio = temp_meanratio;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNormTargetedAttempts = temp_meannormtargetedattempts;
+        TimelineData(index_selected).Groups(g).data.PerAnimalNormNonTargetedAttempts = temp_meannontargetedattempts;
+        if length(TimelineData(index_selected).Groups(g).Sessions) > 1;
+            temp_targetedattemptsstd = nanstd(temp_meantargetedattempts);
+            temp_meantargetedattempts = nanmean(temp_meantargetedattempts);
+            temp_nontargetedattemptsstd = nanstd(temp_meannontargetedattempts);
+            temp_meannontargetedattempts = nanmean(temp_meannontargetedattempts);
+            temp_ratiostd = nanstd(temp_meanratio);
+            temp_meanratio = nanmean(temp_meanratio); 
+            temp_meannormtargetedattemptsSTD = nanstd(temp_meannormtargetedattempts);
+            temp_meannormtargetedattempts = nanmean(temp_meannormtargetedattempts);
+            temp_meannormnontargetedattemptsSTD = nanstd(temp_meannormnontargetedattempts);
+            temp_meannormnontargetedattempts = nanmean(temp_meannormnontargetedattempts);
+        end
+        TimelineData(index_selected).Groups(g).data.MeanTargetedAttempts = {temp_meantargetedattempts};
+        TimelineData(index_selected).Groups(g).data.TargetedAttemptsStd = {temp_targetedattemptsstd};
+        TimelineData(index_selected).Groups(g).data.MeanNonTargetedAttempts = {temp_meannontargetedattempts};
+        TimelineData(index_selected).Groups(g).data.NonTargetedAttemptsStd = {temp_nontargetedattemptsstd};
+        TimelineData(index_selected).Groups(g).data.MeanRatio = {temp_meanratio};
+        TimelineData(index_selected).Groups(g).data.RatioStd = {temp_ratiostd};    
+        TimelineData(index_selected).Groups(g).data.MeanNormTargetedAttempts = {temp_meannormtargetedattempts};
+        TimelineData(index_selected).Groups(g).data.MeanNormTargetedAttemptsStd = {temp_meannormtargetedattemptsSTD};
+        TimelineData(index_selected).Groups(g).data.MeanNormNonTargetedAttempts = {temp_meannormnontargetedattempts};
+        TimelineData(index_selected).Groups(g).data.MeanNormNonTargetedAttemptsStd = {temp_meannormnontargetedattemptsSTD};
+    else
+        TimelineData(index_selected).Groups(g).data.PerAnimalHitRate = temp_meanhitrate;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanTrialCount = temp_MeanTrialCount;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeak = temp_MeanPeak;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMedianPeak = temp_MedianPeak;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanPeakVelocity = temp_MeanPeakVelocity;
+        TimelineData(index_selected).Groups(g).data.PerAnimalMeanLatency = temp_MeanLatency;
+        if length(TimelineData(index_selected).Groups(g).Sessions) > 1;
+            temp_hitratestd = nanstd(temp_meanhitrate);
+            temp_meanhitrate = nanmean(temp_meanhitrate);
+            temp_meantrialcountstd = nanstd(temp_MeanTrialCount);
+            temp_MeanTrialCount = nanmean(temp_MeanTrialCount);
+            temp_meanpeakstd = nanstd(temp_MeanPeak);
+            temp_MeanPeak = nanmean(temp_MeanPeak);
+            temp_medianpeakstd = nanstd(temp_MedianPeak);
+            temp_MedianPeak = nanmedian(temp_MedianPeak);
+            temp_meanpeakvelocitystd = nanstd(temp_MeanPeakVelocity);
+            temp_MeanPeakVelocity = nanmean(temp_MeanPeakVelocity);
+            temp_meanlatencystd = nanstd(temp_MeanLatency);
+            temp_MeanLatency = nanmean(temp_MeanLatency);
+        end
+        TimelineData(index_selected).Groups(g).data.MeanHitRate = {temp_meanhitrate};
+        TimelineData(index_selected).Groups(g).data.hitratestd = {temp_hitratestd};
+        TimelineData(index_selected).Groups(g).data.MeanTrialCount = {temp_MeanTrialCount};
+        TimelineData(index_selected).Groups(g).data.meantrialcountstd = {temp_meantrialcountstd};
+        TimelineData(index_selected).Groups(g).data.MeanPeak = {temp_MeanPeak};
+        TimelineData(index_selected).Groups(g).data.meanpeakstd = {temp_meanpeakstd};
+        TimelineData(index_selected).Groups(g).data.MedianPeak = {temp_MedianPeak};
+        TimelineData(index_selected).Groups(g).data.medianpeakstd = {temp_medianpeakstd};
+        TimelineData(index_selected).Groups(g).data.MeanPeakVelocity = {temp_MeanPeakVelocity};
+        TimelineData(index_selected).Groups(g).data.meanpeakvelocitystd = {temp_meanpeakvelocitystd};
+        TimelineData(index_selected).Groups(g).data.MeanLatency = {temp_MeanLatency};
+        TimelineData(index_selected).Groups(g).data.meanlatencystd = {temp_meanlatencystd};
+    end
+end
+% Variable_Selected = get(Variable,'value');
+FieldNames = fieldnames(TimelineData(index_selected).Groups(1).data);
+FieldName_Selection = listdlg('PromptString','Which variable would you like to perform stats on?',...
+        'name','Variables',...        
+        'listsize',[250 150],...                
+        'ListString',FieldNames);
+FieldName_Selection = FieldNames(FieldName_Selection);    
+    
+for r = 1:size(TimelineData(index_selected).Groups,2)
+   StatsMatrix = TimelineData(index_selected).Groups(r).data.(char(FieldName_Selection));
+   Reps = size(StatsMatrix,1);
+   [~,tbl,stats] = anova2(StatsMatrix,Reps);  set(gcf,'Name',['Two Way Anova: ' char(TimelineData(index_selected).Groups(r).name)]);       
+   figure; c = multcompare(stats);
+   disp(c)
+   set(gcf,'Name',['Multiple Comparisons: ' char(TimelineData(index_selected).Groups(r).name)]);
+   clear StatsMatrix Reps c stats
+end
+% SigStarText = questdlg('How many sigstars would you like to use?',...
+%     'Number of Sigstars',...
+%     'One', 'Two', 'Three', 'Cancel');
+% switch SigStarText
+%     case 'One'
+%         t = '*';
+%     case 'Two'
+%         t = '**';
+%     case 'Three'
+%         t = '***';
+% end
+% gtext(t,'HorizontalAlignment', 'center');
 
 function Linegraph(hObject,~,BarUI,obj,data,Weeks,AnimalData,index_selected,xlabels,EventData,Grayscale_string)
 Line_value = get(hObject, 'value');
