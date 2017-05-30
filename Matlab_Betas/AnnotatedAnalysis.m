@@ -167,7 +167,7 @@ for d = 1:length(devices)                                                   %Ste
     obj(4) = uicontrol(fig,'style','radiobutton','string','Bar Graph',...
         'units','centimeters','position',pos,'fontsize',.8*fontsize);
     pos = [60*sp2+(w-6*sp2)/6, .95*sp1, (w-6*sp2)/6, .9*ui_h]; 
-    obj(5) = uicontrol(fig,'style','pushbutton','string','ANOVA',...
+    obj(5) = uicontrol(fig,'style','pushbutton','string','STATS',...
         'units','centimeters','position',pos,'fontsize',.8*fontsize);
     pos = [5*sp2, .95*sp1, (w-6*sp2)/6, .9*ui_h]; 
     obj(6) = uicontrol(fig,'style','radiobutton','string','Grayscale',...
@@ -384,12 +384,17 @@ FieldName_Selection = listdlg('PromptString','Which variable would you like to p
         'listsize',[250 150],...                
         'ListString',FieldNames);
 FieldName_Selection = FieldNames(FieldName_Selection);    
-    
+PostHocTests = {'tukey-kramer','bonferroni','dunn-sidak','lsd','scheffe'};
+PostHoc_Selection = listdlg('PromptString','Which Post-Hoc test would you like to use?',...
+    'name','Post Hoc Tests',...
+    'listsize',[250 150],...
+    'ListString', PostHocTests);
+PostHoc_Selection = PostHocTests(PostHoc_Selection);
 for r = 1:size(TimelineData(index_selected).Groups,2)
    StatsMatrix = TimelineData(index_selected).Groups(r).data.(char(FieldName_Selection));
    Reps = size(StatsMatrix,1);
    [~,tbl,stats] = anova2(StatsMatrix,Reps);  set(gcf,'Name',['Two Way Anova: ' char(TimelineData(index_selected).Groups(r).name)]);       
-   figure; c = multcompare(stats);
+   figure; c = multcompare(stats,'CType',char(PostHoc_Selection));
    disp(c)
    set(gcf,'Name',['Multiple Comparisons: ' char(TimelineData(index_selected).Groups(r).name)]);
    clear StatsMatrix Reps c stats
@@ -1484,10 +1489,10 @@ else                                                                        %Oth
     for d = 1:length(TimelineData(index_selected).Groups);
         xlswrite(filename, {'Experiment Name:'},d,'A1');
         xlswrite(filename, TimelineData(index_selected).ExpName,d,'B1');
-        xlswrite(filename,{'Groups:'},d,'A2');
-        xlswrite(filename,TimelineData(index_selected).Groups.name(d),d,'B2');
-        xlswrite(filename,{'Group Name:'},d,'A4')
-        xlswrite(filename,TimelineData(index_selected).Groups.name(d),d,'B4');
+%         xlswrite(filename,{'Groups:'},d,'A2');
+%         xlswrite(filename,TimelineData(index_selected).Groups(d).name(d),d,'B2');
+        xlswrite(filename,{'Group Name:'},d,'A2')
+        xlswrite(filename,TimelineData(index_selected).Groups(d).name,d,'B2');
         xlswrite(filename,TimelineData(index_selected).Groups(d).Subjects,d,'A5');
         xlswrite(filename,GroupInfo(d).data',d,'A6');
     end
